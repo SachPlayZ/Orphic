@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
-import DeFolioLogo from '../components/DeFolioLogo';
-import { SpotlightBackground } from '../components/ui/evervault-card';
+import React from "react";
+import DeFolioLogo from "../components/DeFolioLogo";
+import { SpotlightBackground } from "../components/ui/evervault-card";
 
 export default function Home() {
   return (
@@ -11,5 +11,5 @@ export default function Home() {
         <DeFolioLogo />
       </div>
     </SpotlightBackground>
-  )
+  );
 }
