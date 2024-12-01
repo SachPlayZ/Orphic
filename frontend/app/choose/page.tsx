@@ -9,33 +9,48 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { useAccount, useWriteContract } from "wagmi";
+import { useAccount, useWriteContract, useReadContract } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { getFaction } from "@/functions/ReadWriteFaction";
 import { useRouter } from "next/navigation";
 
 const Page = () => {
   const { address, isConnected } = useAccount();
   const [faction, setFaction] = useState<string | undefined>(undefined);
+  const [globalLoading, setGlobalLoading] = useState(true); // Global loading state
   const router = useRouter();
-  const currentFaction = address ? getFaction(address) : "";
+  const { data, isLoading } = useReadContract({
+    address: contractAddress,
+    abi: abi,
+    functionName: "getPlayerFaction",
+    args: [address],
+  });
 
   useEffect(() => {
-    if (address) {
-      setFaction(currentFaction);
-      if (currentFaction) {
-        router.push("/battle");
+    if (!isLoading) {
+      setGlobalLoading(false); // Stop loading when the contract data is fetched
+      if (data) {
+        if (data === 1) {
+          setFaction("Dragons");
+          router.push("/battle");
+        } else if (data === 2) {
+          setFaction("Tigers");
+          router.push("/battle");
+        }
       }
     }
-  }, [address, router]);
-
-  if (faction) {
-    return null; // Return null while redirecting to prevent flash of content
-  }
+  }, [isLoading, data, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black overflow-hidden relative">
-      {!isConnected ? <WalletConnectionScreen /> : <FactionSelectionScreen />}
+      {globalLoading ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <Loader2 className="h-16 w-16 animate-spin text-white" />
+        </div>
+      ) : !isConnected ? (
+        <WalletConnectionScreen />
+      ) : (
+        <FactionSelectionScreen />
+      )}
     </div>
   );
 };
@@ -97,16 +112,25 @@ const FactionChoice = ({
   const factionId = name === "Dragons" ? 1 : 2;
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
+  const router = useRouter();
 
   const handleSelectFaction = async () => {
     try {
       setIsLoading(true);
-      await writeContractAsync({
-        address: contractAddress,
-        abi: abi,
-        functionName: "setPlayerFaction",
-        args: [address, factionId],
-      });
+      await writeContractAsync(
+        {
+          address: contractAddress,
+          abi: abi,
+          functionName: "setPlayerFaction",
+          args: [address, factionId],
+        },
+        {
+          onSuccess: () => {
+            console.log("Faction selected successfully");
+            router.push("/battle");
+          },
+        }
+      );
     } catch (error) {
       console.error("Error selecting faction:", error);
       // Optionally, you could add error handling here (e.g., show an error message)
