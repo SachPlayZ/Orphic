@@ -15,10 +15,10 @@ const RotatingCoin: React.FC = () => {
       <div className={styles.coin}>
         <div className={styles.coinEdge}></div>
         <div className={`${styles.coinSide} ${styles.coinSideFront}`}>
-          <img className={styles.coinImage} src="/repcoin6.png" alt="Coin front" />
+          <img className={styles.coinImage} src="/dvst1.png" alt="Coin front" />
         </div>
         <div className={`${styles.coinSide} ${styles.coinSideBack}`}>
-          <img className={styles.coinImage} src="/repcoin6.png" alt="Coin back" />
+          <img className={styles.coinImage} src="/dvst1.png" alt="Coin back" />
         </div>
       </div>
     </motion.div>
