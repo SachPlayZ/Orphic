@@ -1,155 +1,156 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.27;
 
-import {Test, console} from "forge-std/Test.sol";
-import {OrphicGameEngine} from "../src/OrphicGameEngine.sol";
-import {DeployOrphicGameEngine} from "../script/DeployOrphicGameEngine.s.sol";
+import "forge-std/Test.sol";
+import "../src/OrphicGameEngine.sol";
 
 contract OrphicGameEngineTest is Test {
-    OrphicGameEngine public orphicGameEngine;
-    address public USER = makeAddr("user");
-    address public ANOTHER_USER = makeAddr("anotherUser");
+    OrphicGameEngine private engine;
+
+    address private user1 = address(0x1);
+    address private user2 = address(0x2);
 
     function setUp() public {
-        DeployOrphicGameEngine deployer = new DeployOrphicGameEngine();
-        orphicGameEngine = deployer.run();
-    }
-
-    function testContractInitialization() public view {
-        assertEq(orphicGameEngine.name(), "Monsters");
-        assertEq(orphicGameEngine.symbol(), "MON");
-        assertEq(orphicGameEngine.getTokenCounter(), 0);
+        engine = new OrphicGameEngine();
     }
 
     function testMintMonster() public {
-        vm.startPrank(USER);
-        
-        orphicGameEngine.mintMonster(
-            "TestMonster", 
-            50, 
-            30, 
-            100,
-            OrphicGameEngine.rarity.common
-        );
+        vm.startPrank(user1);
 
-        assertEq(orphicGameEngine.getTokenCounter(), 1);
+        string memory tokenURI = "https://example.com/monster1.json";
+        string memory name = "Fire Dragon";
+        uint256 attack = 100;
+        uint256 defense = 50;
+        uint256 hp = 200;
+        OrphicGameEngine.rarity monsterRarity = OrphicGameEngine.rarity.epic;
 
+        engine.mintMonster(tokenURI, name, attack, defense, hp, monsterRarity);
+
+        uint256 tokenId = 0;
+
+        // Check token ownership
+        assertEq(engine.ownerOf(tokenId), user1);
+
+        // Check monster attributes
         (
-            string memory name,
-            uint256 attack,
-            uint256 defense,
-            uint256 hp,
-            string memory rarity
-        ) = orphicGameEngine.monsterAttributes(0);
+            string memory monsterName,
+            uint256 monsterAttack,
+            uint256 monsterDefense,
+            uint256 monsterHp,
+            string memory monsterRarityString,
+            string memory monsterTokenURI
+        ) = engine.getMonsterDetails(tokenId);
 
-        assertEq(name, "TestMonster");
-        assertEq(attack, 50);
-        assertEq(defense, 30);
-        assertEq(hp, 100);
-        assertEq(rarity, "common");
-
-        assertEq(orphicGameEngine.ownerOf(0), USER);
+        assertEq(monsterName, name);
+        assertEq(monsterAttack, attack);
+        assertEq(monsterDefense, defense);
+        assertEq(monsterHp, hp);
+        assertEq(monsterRarityString, "epic");
+        assertEq(monsterTokenURI, tokenURI);
 
         vm.stopPrank();
     }
 
-    function testMintMultipleMonsters() public {
-        vm.startPrank(USER);
-        
-        orphicGameEngine.mintMonster(
-            "Monster1", 
-            50, 
-            30, 
-            100, 
-            OrphicGameEngine.rarity.common
+    function testGetAllMonstersFromAUser() public {
+        vm.startPrank(user1);
+
+        engine.mintMonster(
+            "https://example.com/monster1.json",
+            "Fire Dragon",
+            100,
+            50,
+            200,
+            OrphicGameEngine.rarity.epic
         );
-        orphicGameEngine.mintMonster(
-            "Monster2", 
-            70, 
-            40, 
-            120, 
+
+        engine.mintMonster(
+            "https://example.com/monster2.json",
+            "Water Serpent",
+            80,
+            60,
+            180,
             OrphicGameEngine.rarity.rare
         );
 
-        assertEq(orphicGameEngine.getTokenCounter(), 2);
+        OrphicGameEngine.MonsterAttributes[] memory monsters = engine
+            .getAllMonstersFromAUser(user1);
+
+        assertEq(monsters.length, 2);
+
+        assertEq(monsters[0].name, "Fire Dragon");
+        assertEq(monsters[1].name, "Water Serpent");
+
+        vm.stopPrank();
+    }
+
+    function testSetAndRetrievePlayerFaction() public {
+        uint8 factionId = 2;
+        engine.setPlayerFaction(user1, factionId);
+        assertEq(engine.playerFaction(user1), factionId);
+    }
+
+    function testGetUserTokenCount() public {
+        vm.startPrank(user1);
+
+        engine.mintMonster(
+            "https://example.com/monster1.json",
+            "Fire Dragon",
+            100,
+            50,
+            200,
+            OrphicGameEngine.rarity.epic
+        );
+
+        engine.mintMonster(
+            "https://example.com/monster2.json",
+            "Water Serpent",
+            80,
+            60,
+            180,
+            OrphicGameEngine.rarity.rare
+        );
+
+        assertEq(engine.getUserTokenCount(user1), 2);
+
+        vm.stopPrank();
+    }
+
+    function testGetUserTokens() public {
+        vm.startPrank(user2);
+
+        engine.mintMonster(
+            "https://example.com/monster1.json",
+            "Ice Phoenix",
+            110,
+            70,
+            210,
+            OrphicGameEngine.rarity.legendary
+        );
+
+        uint256[] memory tokens = engine.getUserTokens(user2);
+
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], 0); // Token ID of the minted monster
+
         vm.stopPrank();
     }
 
     function testTokenURI() public {
-        vm.startPrank(USER);
-        
-        orphicGameEngine.mintMonster(
-            "URITestMonster", 
-            50, 
-            30, 
-            100, 
+        vm.startPrank(user1);
+
+        string memory tokenURI = "https://example.com/monster1.json";
+        engine.mintMonster(
+            tokenURI,
+            "Fire Dragon",
+            100,
+            50,
+            200,
             OrphicGameEngine.rarity.epic
         );
 
-        string memory tokenURI = orphicGameEngine.tokenURI(0);
-        
-        assertTrue(bytes(tokenURI).length > 0);
-        assertTrue(keccak256(abi.encodePacked(tokenURI)) != keccak256(""));
+        uint256 tokenId = 0;
+        assertEq(engine.tokenURI(tokenId), tokenURI);
 
         vm.stopPrank();
-    }
-
-    function testSetAndGetPlayerFaction() public {
-        vm.startPrank(USER);
-        
-        orphicGameEngine.setPlayerFaction(USER, 1);
-        
-        assertEq(orphicGameEngine.getPlayerFaction(USER), 1);
-
-        vm.stopPrank();
-    }
-
-    function testMintWithDifferentRarities() public {
-        vm.startPrank(USER);
-        
-        orphicGameEngine.mintMonster(
-            "CommonMonster", 
-            30, 
-            20, 
-            80, 
-            OrphicGameEngine.rarity.common
-        );
-        orphicGameEngine.mintMonster(
-            "RareMonster", 
-            60, 
-            45, 
-            110, 
-            OrphicGameEngine.rarity.rare
-        );
-        orphicGameEngine.mintMonster(
-            "EpicMonster", 
-            80, 
-            60, 
-            130, 
-            OrphicGameEngine.rarity.epic
-        );
-        orphicGameEngine.mintMonster(
-            "LegendaryMonster", 
-            90, 
-            75, 
-            150, 
-            OrphicGameEngine.rarity.legendary
-        );
-
-        assertEq(orphicGameEngine.getTokenCounter(), 4);
-        vm.stopPrank();
-    }
-
-    function testCannotMintToZeroAddress() public {
-        vm.expectRevert();
-        vm.prank(address(0));
-        orphicGameEngine.mintMonster(
-            "InvalidMonster", 
-            50, 
-            30, 
-            100, 
-            OrphicGameEngine.rarity.common
-        );
     }
 }
