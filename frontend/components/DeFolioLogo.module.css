@@ -5,6 +5,7 @@
   width: 100vw;
   height: 100vh;
   background: transparent;
+  pointer-events: auto;
 }
 
 .textContainer {
