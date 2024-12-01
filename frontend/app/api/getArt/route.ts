@@ -8,7 +8,7 @@ async function posthandler(req: NextRequest) {
         return NextResponse.json({ error: "Invalid request method" }, { status: 405 });
     }
     const { creatureType, rarity } = await req.json();
-
+    console.log(creatureType, rarity);
     if (!creatureType || !rarity) {
         return NextResponse.json({ error: "Missing creature type or rarity" }, { status: 400 });
     }

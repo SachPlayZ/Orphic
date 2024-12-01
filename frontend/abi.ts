@@ -21,9 +21,25 @@ const abi = [
     },
     {
       "type": "function",
-      "name": "faction",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+      "name": "getAllMonstersFromAUser",
+      "inputs": [
+        { "name": "user", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple[]",
+          "internalType": "struct OrphicGameEngine.MonsterAttributes[]",
+          "components": [
+            { "name": "name", "type": "string", "internalType": "string" },
+            { "name": "attack", "type": "uint256", "internalType": "uint256" },
+            { "name": "defense", "type": "uint256", "internalType": "uint256" },
+            { "name": "hp", "type": "uint256", "internalType": "uint256" },
+            { "name": "rarity", "type": "string", "internalType": "string" },
+            { "name": "tokenURI", "type": "string", "internalType": "string" }
+          ]
+        }
+      ],
       "stateMutability": "view"
     },
     {
@@ -37,11 +53,22 @@ const abi = [
     },
     {
       "type": "function",
-      "name": "getPlayerFaction",
+      "name": "getMonsterDetails",
       "inputs": [
-        { "name": "player", "type": "address", "internalType": "address" }
+        { "name": "tokenId", "type": "uint256", "internalType": "uint256" }
       ],
-      "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }],
+      "outputs": [
+        { "name": "monsterName", "type": "string", "internalType": "string" },
+        { "name": "attack", "type": "uint256", "internalType": "uint256" },
+        { "name": "defense", "type": "uint256", "internalType": "uint256" },
+        { "name": "hp", "type": "uint256", "internalType": "uint256" },
+        { "name": "monsterRarity", "type": "string", "internalType": "string" },
+        {
+          "name": "monsterTokenURI",
+          "type": "string",
+          "internalType": "string"
+        }
+      ],
       "stateMutability": "view"
     },
     {
@@ -49,6 +76,26 @@ const abi = [
       "name": "getTokenCounter",
       "inputs": [],
       "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getUserTokenCount",
+      "inputs": [
+        { "name": "user", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getUserTokens",
+      "inputs": [
+        { "name": "user", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [
+        { "name": "", "type": "uint256[]", "internalType": "uint256[]" }
+      ],
       "stateMutability": "view"
     },
     {
@@ -65,6 +112,7 @@ const abi = [
       "type": "function",
       "name": "mintMonster",
       "inputs": [
+        { "name": "_tokenURI", "type": "string", "internalType": "string" },
         { "name": "_name", "type": "string", "internalType": "string" },
         { "name": "_attack", "type": "uint256", "internalType": "uint256" },
         { "name": "_defense", "type": "uint256", "internalType": "uint256" },
@@ -87,15 +135,9 @@ const abi = [
         { "name": "attack", "type": "uint256", "internalType": "uint256" },
         { "name": "defense", "type": "uint256", "internalType": "uint256" },
         { "name": "hp", "type": "uint256", "internalType": "uint256" },
-        { "name": "rarity", "type": "string", "internalType": "string" }
+        { "name": "rarity", "type": "string", "internalType": "string" },
+        { "name": "tokenURI", "type": "string", "internalType": "string" }
       ],
-      "stateMutability": "view"
-    },
-    {
-      "type": "function",
-      "name": "monsterURI",
-      "inputs": [],
-      "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
       "stateMutability": "view"
     },
     {
@@ -113,6 +155,26 @@ const abi = [
       ],
       "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
       "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "playerFaction",
+      "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "rarityToString",
+      "inputs": [
+        {
+          "name": "_rarity",
+          "type": "uint8",
+          "internalType": "enum OrphicGameEngine.rarity"
+        }
+      ],
+      "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+      "stateMutability": "pure"
     },
     {
       "type": "function",
@@ -199,6 +261,23 @@ const abi = [
       ],
       "outputs": [],
       "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "userTokenCount",
+      "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "userTokens",
+      "inputs": [
+        { "name": "", "type": "address", "internalType": "address" },
+        { "name": "", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
     },
     {
       "type": "event",
@@ -360,5 +439,5 @@ const abi = [
       ]
     },
     { "type": "error", "name": "OrphicGameEngine__InvalidRarity", "inputs": [] }
-  ]
+  ];
   export default abi;

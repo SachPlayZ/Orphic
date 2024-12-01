@@ -21,7 +21,7 @@ const Page = () => {
   const { data, isLoading } = useReadContract({
     address: contractAddress,
     abi: abi,
-    functionName: "getPlayerFaction",
+    functionName: "playerFaction",
     args: [address],
   });
   const { data: data2, isLoading: isLoading2 } = useReadContract({
@@ -32,21 +32,22 @@ const Page = () => {
   });
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !isLoading2) {
+      console.log("Data:", Number(data2));
       setGlobalLoading(false); // Stop loading when the contract data is fetched
       if (data) {
-        const factionName = data === 1 ? "Dragons" : "Tigers";
-        setFaction(factionName);
-
-        if (data2 === 0) {
-          // If 0 tokens, add faction as query parameter
-          router.push(`/first-mon?faction=${factionName.toLowerCase()}`);
-        } else {
-          router.push("/battle");
+        if (data === 1) {
+          setFaction("Dragons");
+          if (Number(data2) == 0) router.push("/first-mon?faction=dragon");
+          else router.push("/battle");
+        } else if (data === 2) {
+          setFaction("Tigers");
+          if (Number(data2) == 0) router.push("/first-mon?faction=tiger");
+          else router.push("/battle");
         }
       }
     }
-  }, [isLoading, data, data2, router]);
+  }, [isLoading, isLoading2, data, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black overflow-hidden relative">
@@ -135,7 +136,7 @@ const FactionChoice = ({
         {
           onSuccess: () => {
             console.log("Faction selected successfully");
-            router.push(`/first-mon?faction=${name.toLowerCase()}`);
+            router.push("/battle");
           },
         }
       );
