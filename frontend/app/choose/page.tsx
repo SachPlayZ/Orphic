@@ -1,25 +1,46 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState } from "react";
+
+import abi from "@/abi";
+
+const contractAddress = "0x614A1F64395FD1b925E347AC13812CC48b62f5B7";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { useAccount, useWriteContract } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { getFaction } from "@/functions/ReadWriteFaction";
+import { useRouter } from "next/navigation";
 
 const Page = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { address, isConnected } = useAccount();
+  const [faction, setFaction] = useState<string | undefined>(undefined);
+  const router = useRouter();
+  const currentFaction = address ? getFaction(address) : "";
+
+  useEffect(() => {
+    if (address) {
+      setFaction(currentFaction);
+      if (currentFaction) {
+        router.push("/battle");
+      }
+    }
+  }, [address, router]);
+
+  if (faction) {
+    return null; // Return null while redirecting to prevent flash of content
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black overflow-hidden relative">
-      {!isLoggedIn ? (
-        <WalletConnectionScreen onConnect={() => setIsLoggedIn(true)} />
-      ) : (
-        <FactionSelectionScreen />
-      )}
+      {!isConnected ? <WalletConnectionScreen /> : <FactionSelectionScreen />}
     </div>
   );
 };
 
-const WalletConnectionScreen = ({ onConnect }: { onConnect: () => void }) => {
+const WalletConnectionScreen = () => {
   return (
     <motion.div
       className="flex flex-col items-center justify-center text-center"
@@ -34,12 +55,7 @@ const WalletConnectionScreen = ({ onConnect }: { onConnect: () => void }) => {
           to Continue
         </span>
       </h1>
-      <Button
-        onClick={onConnect}
-        className="bg-gradient-to-r from-blue-500 to-green-500 text-white py-3 px-8 rounded-full text-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300"
-      >
-        Connect Wallet
-      </Button>
+      <ConnectButton />
     </motion.div>
   );
 };
@@ -77,12 +93,34 @@ const FactionChoice = ({
   side: "left" | "right";
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const factionId = name === "Dragons" ? 1 : 2;
+  const { writeContractAsync } = useWriteContract();
+  const { address } = useAccount();
+
+  const handleSelectFaction = async () => {
+    try {
+      setIsLoading(true);
+      await writeContractAsync({
+        address: contractAddress,
+        abi: abi,
+        functionName: "setPlayerFaction",
+        args: [address, factionId],
+      });
+    } catch (error) {
+      console.error("Error selecting faction:", error);
+      // Optionally, you could add error handling here (e.g., show an error message)
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div
       className={`relative ${side === "left" ? "ml-10" : "mr-10"}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleSelectFaction}
     >
       <motion.div
         className="relative group"
@@ -99,7 +137,13 @@ const FactionChoice = ({
             isHovered ? "opacity-100" : "opacity-40"
           }`}
         />
-        <AnimatedButton name={name} isHovered={isHovered} />
+        {isLoading ? (
+          <div className="absolute top-10 left-1/2 transform -translate-x-1/2">
+            <Loader2 className="h-12 w-12 animate-spin text-white" />
+          </div>
+        ) : (
+          <AnimatedButton name={name} isHovered={isHovered} />
+        )}
       </motion.div>
     </div>
   );
