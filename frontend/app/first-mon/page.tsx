@@ -1,10 +1,11 @@
+"use client";
 import React, { useState } from "react";
 
 const GenerateCreature = () => {
   const [image, setImage] = useState<string | null>(null);
 
   const generateImage = async (creatureType: string, rarity: string) => {
-    const response = await fetch("/api/generateImage", {
+    const response = await fetch("/api/getArt", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -24,7 +25,10 @@ const GenerateCreature = () => {
 
   return (
     <div>
-      <button onClick={() => generateImage("dragon", "legendary")}>
+      <button
+        className="text-white"
+        onClick={() => generateImage("dragon", "legendary")}
+      >
         Generate Legendary Dragon
       </button>
       {image && <img src={image} alt="Generated Creature" />}
