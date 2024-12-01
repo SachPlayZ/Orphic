@@ -1,5 +1,4 @@
-const HF_API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev";
-const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
+const BEYOND_API_URL = process.env.BEYOND_BASE_URL + "/api/images/generate";
 
 export const generateCreature = async (creatureType: string, rarity: string): Promise<Blob | null> => {
     const creatureStyles: Record<string, any> = {
@@ -66,20 +65,31 @@ export const generateCreature = async (creatureType: string, rarity: string): Pr
     const prompt = `A hyperrealistic depiction of a ${rarity} monster that looks like a ${creatureType}, featuring a ${details.size} build with ${details.traits}. It has ${details.style}, and its unique coloration includes ${color}. This design embodies the essence of a ${rarity} ${creatureType}-like monster.`;
 
     try {
-        const response = await fetch(HF_API_URL, {
+        const response = await fetch(BEYOND_API_URL, {
             method: "POST",
-            headers: {
-                Authorization: `Bearer ${HF_API_TOKEN}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ inputs: prompt }),
+            headers: new Headers([
+            ["x-api-key", process.env.BEYOND_API_KEY || ""],
+            ["Content-Type", "application/json"],
+            ]),
+            body: JSON.stringify({
+            "prompt": prompt,
+            "model": "black-forest-labs/FLUX.1-schnell",
+            "options": {
+                "steps": Math.floor(Math.random() * 8) + 4, // randomize steps between 4 and 11
+                "temperature": Math.random() * (0.8 - 0.6) + 0.6, // randomize temperature between 0.6 and 1
+                "cache": false,
+            }
+            }),
         });
 
         if (!response.ok) {
-            throw new Error(`Hugging Face API error: ${response.statusText}`);
+            throw new Error(`Beyond API error: ${response.statusText}`);
         }
+        const body = await response.json();
+        const url = process.env.BEYOND_BASE_URL + body.url;
 
-        const blob = await response.blob();
+
+        const blob = await fetch(url).then(res => res.blob());
         return blob;
     } catch (error) {
         console.error(error);
