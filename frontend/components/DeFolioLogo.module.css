@@ -1,0 +1,45 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+}
+
+.textContainer {
+  display: flex;
+  align-items: center;
+  font-size: 200px;
+  font-weight: bold;
+}
+
+.whiteText {
+  color: white;
+}
+
+.gradientText {
+  background: linear-gradient(
+    to right,
+    #008245,
+    #48d1cc,
+    #d400ff,
+    #48d1cc,
+    #008245
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: flowingGradient 10s linear infinite;
+}
+
+@keyframes flowingGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}
+
