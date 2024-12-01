@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import abi from "@/abi";
 
-const contractAddress = "0x614A1F64395FD1b925E347AC13812CC48b62f5B7";
+const contractAddress = "0xFfa47E4562D7cc6cDB95a7366E04b644e9DEF000";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
