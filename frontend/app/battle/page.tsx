@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useEffect, useState } from "react";
 import io, { Socket } from "socket.io-client";
@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 
 let socket: Socket;
-const CLIENT_URL = process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
+const CLIENT_URL =
+  process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
 
 const BattlePage = () => {
   const [socketConnected, setSocketConnected] = useState(false);
@@ -16,8 +17,10 @@ const BattlePage = () => {
   const [attacking, setAttacking] = useState(false);
   const [defending, setDefending] = useState(false);
   const [turn, setTurn] = useState(0);
-  const [isPlayerTurn, setIsPlayerTurn] = useState(false);
-  const [battleStatus, setBattleStatus] = useState<'waiting' | 'active' | 'completed'>('waiting');
+  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+  const [battleStatus, setBattleStatus] = useState<
+    "waiting" | "active" | "completed"
+  >("waiting");
   const [playerHealth, setPlayerHealth] = useState(100);
   const [opponentHealth, setOpponentHealth] = useState(100);
 
@@ -37,30 +40,33 @@ const BattlePage = () => {
     });
 
     // Turn management
-    socket.on("turnUpdate", (data: { currentTurn: number, playerTurn: boolean }) => {
-      setTurn(data.currentTurn);
-      setIsPlayerTurn(data.playerTurn);
-    });
+    socket.on(
+      "turnUpdate",
+      (data: { currentTurn: number; playerTurn: boolean }) => {
+        setTurn(data.currentTurn);
+        setIsPlayerTurn(data.playerTurn);
+      }
+    );
 
     // Battle state updates
     socket.on("battleStart", () => {
-      setBattleStatus('active');
+      setBattleStatus("active");
       setPlayerHealth(100);
       setOpponentHealth(100);
     });
 
     // Health updates
-    socket.on("healthUpdate", (data: { 
-      playerHealth: number, 
-      opponentHealth: number 
-    }) => {
-      setPlayerHealth(data.playerHealth);
-      setOpponentHealth(data.opponentHealth);
-    });
+    socket.on(
+      "healthUpdate",
+      (data: { playerHealth: number; opponentHealth: number }) => {
+        setPlayerHealth(data.playerHealth);
+        setOpponentHealth(data.opponentHealth);
+      }
+    );
 
     // Battle end
     socket.on("battleEnd", (data: { winner: string }) => {
-      setBattleStatus('completed');
+      setBattleStatus("completed");
       console.log(`Battle ended. Winner: ${data.winner}`);
     });
 
@@ -72,7 +78,7 @@ const BattlePage = () => {
 
   // Attack handler
   const handleAttack = () => {
-    if (!isPlayerTurn || battleStatus !== 'active') return;
+    if (!isPlayerTurn || battleStatus !== "active") return;
 
     socket.emit("playerAttack", { address });
     setAttacking(true);
@@ -83,7 +89,7 @@ const BattlePage = () => {
 
   // Defend handler
   const handleDefend = () => {
-    if (!isPlayerTurn || battleStatus !== 'active') return;
+    if (!isPlayerTurn || battleStatus !== "active") return;
 
     socket.emit("playerDefend", { address });
     setDefending(true);
@@ -96,10 +102,12 @@ const BattlePage = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-700 text-white">
       <div className="container mx-auto p-4">
         <h1 className="text-4xl font-bold text-center mb-8">Battle Arena</h1>
-        
+
         {/* Battle Status */}
         <div className="text-center mb-4">
-          <p className="text-lg">Battle Status: <span className="font-bold">{battleStatus}</span></p>
+          <p className="text-lg">
+            Battle Status: <span className="font-bold">{battleStatus}</span>
+          </p>
           <p>Current Turn: {turn}</p>
         </div>
 
@@ -122,8 +130,8 @@ const BattlePage = () => {
               <div className="text-center">
                 <p>Health: {playerHealth}/100</p>
                 <div className="w-full bg-red-900 rounded-full h-4 mt-2">
-                  <div 
-                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out" 
+                  <div
+                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
                     style={{ width: `${playerHealth}%` }}
                   ></div>
                 </div>
@@ -151,8 +159,8 @@ const BattlePage = () => {
               <div className="text-center">
                 <p>Health: {opponentHealth}/100</p>
                 <div className="w-full bg-red-900 rounded-full h-4 mt-2">
-                  <div 
-                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out" 
+                  <div
+                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
                     style={{ width: `${opponentHealth}%` }}
                   ></div>
                 </div>
@@ -163,23 +171,27 @@ const BattlePage = () => {
 
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">
-          <Button 
-            onClick={handleAttack} 
-            disabled={!isPlayerTurn || battleStatus !== 'active'}
-            className={`${isPlayerTurn && battleStatus === 'active' 
-              ? 'bg-red-500 hover:bg-red-600' 
-              : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
+          <Button
+            onClick={handleAttack}
+            disabled={!isPlayerTurn || battleStatus !== "active"}
+            className={`${
+              isPlayerTurn && battleStatus === "active"
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-gray-600 cursor-not-allowed"
+            } transition-all duration-300`}
           >
-            {attacking ? 'Attacking...' : 'Attack'}
+            {attacking ? "Attacking..." : "Attack"}
           </Button>
-          <Button 
-            onClick={handleDefend} 
-            disabled={!isPlayerTurn || battleStatus !== 'active'}
-            className={`${isPlayerTurn && battleStatus === 'active' 
-              ? 'bg-blue-500 hover:bg-blue-600' 
-              : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
+          <Button
+            onClick={handleDefend}
+            disabled={!isPlayerTurn || battleStatus !== "active"}
+            className={`${
+              isPlayerTurn && battleStatus === "active"
+                ? "bg-blue-500 hover:bg-blue-600"
+                : "bg-gray-600 cursor-not-allowed"
+            } transition-all duration-300`}
           >
-            {defending ? 'Defending...' : 'Defend'}
+            {defending ? "Defending..." : "Defend"}
           </Button>
         </div>
 
@@ -192,7 +204,6 @@ const BattlePage = () => {
       </div>
     </div>
   );
-}
+};
 
 export default BattlePage;
-
