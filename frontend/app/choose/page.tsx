@@ -136,7 +136,6 @@ const FactionChoice = ({
         {
           onSuccess: () => {
             console.log("Faction selected successfully");
-            router.push("/play");
           },
         }
       );
