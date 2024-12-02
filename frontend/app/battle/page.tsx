@@ -22,7 +22,15 @@ interface BattleEndPayload {
   winner: string;
 }
 
-function handleMonsterAttributes() {}
+function handleMonsterAttributes(tokenId: number) {
+  const { data, isLoading } = useReadContract({
+    address: contractAddress,
+    abi: abi,
+    functionName: "getMonsterDetails",
+    args: [tokenId],
+  });
+  return { data, isLoading };
+}
 
 let socket: Socket;
 const CLIENT_URL =
