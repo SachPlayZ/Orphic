@@ -101,7 +101,7 @@ const BattlePage = () => {
   const handleAttack = () => {
     if (!isPlayerTurn && !isPlayerTurn) return;
 
-    socket.emit("playerAttack", { address });
+    socket?.emit("playerAttack", { address });
     setAttacking(true);
   };
 
@@ -141,16 +141,16 @@ const BattlePage = () => {
           <p>Current Turn: {turn}</p>
         </div>
 
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 text-white">
           <Card className="w-1/3 bg-gray-800 border-2 border-blue-500">
             <CardHeader>
-              <CardTitle className="text-center">Your Card</CardTitle>
+              <CardTitle className="text-center">Player1: {address}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative h-48 mb-4">
                 <Image
                   src="/placeholder.svg?height=200&width=200"
-                  alt="Player Card"
+                  alt="Player1"
                   layout="fill"
                   objectFit="contain"
                 />
@@ -171,13 +171,13 @@ const BattlePage = () => {
 
           <Card className="w-1/3 bg-gray-800 border-2 border-red-500">
             <CardHeader>
-              <CardTitle className="text-center">Opponent</CardTitle>
+              <CardTitle className="text-center">Player2: {address}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative h-48 mb-4">
                 <Image
                   src="/placeholder.svg?height=200&width=200"
-                  alt="Opponent Card"
+                  alt="Player2"
                   layout="fill"
                   objectFit="contain"
                 />
