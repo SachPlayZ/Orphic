@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { useReadContract, useWriteContract } from "wagmi";
 import abi from "@/abi";
+import { useRouter } from "next/navigation";
 const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
 // Interfaces for type safety
@@ -37,6 +38,7 @@ const CLIENT_URL =
   process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
 
 const BattlePage = () => {
+  const router = useRouter();
   const [socketConnected, setSocketConnected] = useState(false);
   console.log(socketConnected);
 
@@ -48,11 +50,15 @@ const BattlePage = () => {
   const [turn, setTurn] = useState(0);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
 
+  const [playerOneHealth, setPlayerOneHealth] = useState(100);
+  const [playerTwoHealth, setPlayerTwoHealth] = useState(100);
+  const [winner, setWinner] = useState<string | null>(null);
+
   const [battleStatus, setBattleStatus] = useState<
     "waiting" | "active" | "completed"
   >("waiting");
-  const [playerOneHealth, setPlayerOneHealth] = useState(100);
-  const [playerTwoHealth, setPlayerTwoHealth] = useState(100);
+  const [playerHealth, setPlayerHealth] = useState(100);
+  const [opponentHealth, setOpponentHealth] = useState(100);
 
   useEffect(() => {
     socket = io(CLIENT_URL, {
@@ -101,6 +107,7 @@ const BattlePage = () => {
       setBattleStatus("completed");
       console.log(`Battle ended. Winner: ${data.winner}`);
       setPlayerTwoHealth(0);
+      setWinner(data.winner);
     });
 
     socket.on("actionComplete", () => {
@@ -131,7 +138,12 @@ const BattlePage = () => {
     if (battleStatus === "completed") {
       socket.emit("restartBattle", { address });
       setBattleStatus("waiting");
+      setOpponentHealth(0);
     }
+  };
+
+  const handleReturnToMainmenu = () => {
+    router.push("/play");
   };
 
   console.log(isPlayerTurn);
@@ -159,7 +171,7 @@ const BattlePage = () => {
         <div className="flex justify-between items-center mb-8 text-white">
           <Card className="w-1/3 bg-gray-800 border-2 border-blue-500">
             <CardHeader>
-              <CardTitle className="text-center">Player1: {address}</CardTitle>
+              <CardTitle className="text-center">Player1</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative h-48 mb-4">
@@ -186,7 +198,7 @@ const BattlePage = () => {
 
           <Card className="w-1/3 bg-gray-800 border-2 border-red-500">
             <CardHeader>
-              <CardTitle className="text-center">Player2: {address}</CardTitle>
+              <CardTitle className="text-center">Player2</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative h-48 mb-4">
@@ -214,34 +226,40 @@ const BattlePage = () => {
           <div className="flex justify-center space-x-4">
             <Button
               onClick={handleAttack}
-              disabled={!isPlayerTurn}
+              disabled={false}
               className={`${
                 isPlayerTurn || isPlayerTurn
                   ? "bg-red-500 hover:bg-red-600"
                   : "bg-gray-600 cursor-not-allowed"
               } transition-all duration-300`}
             >
-              {attacking ? "Attacking..." : "Attack"}
+              Attack
             </Button>
             <Button
               onClick={handleDefend}
-              disabled={!isPlayerTurn}
+              disabled={false}
               className={`${
                 isPlayerTurn || isPlayerTurn
                   ? "bg-blue-500 hover:bg-blue-600"
                   : "bg-gray-600 cursor-not-allowed"
               } transition-all duration-300`}
             >
-              {defending ? "Defending..." : "Defend"}
+              Defend
             </Button>
           </div>
         ) : battleStatus === "completed" ? (
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center justify-center gap-y-4">
             <Button
               onClick={handleRestartBattle}
               className="bg-green-500 hover:bg-green-600 transition-all duration-300"
             >
               Restart Battle
+            </Button>
+            <Button
+              onClick={handleReturnToMainmenu}
+              className="bg-blue-500 hover:bg-blue-600 transition-all duration-300"
+            >
+              Return to Mainmenu
             </Button>
           </div>
         ) : (
@@ -261,7 +279,7 @@ const BattlePage = () => {
         {battleStatus === "completed" && (
           <div className="text-center mt-4">
             <p className="text-2xl font-bold">
-              {playerOneHealth > 0 ? "You Won!" : "You Lost!"}
+              {playerOneHealth > 0 && `Winner: ${winner}`}
             </p>
           </div>
         )}
