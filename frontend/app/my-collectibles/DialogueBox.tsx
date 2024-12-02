@@ -44,13 +44,13 @@ export default function MonsterDialog({
             <span className="capitalize">{monster.rarity}</span>
           </p>
           <p className="mb-2">
-            <span className="font-semibold">Attack:</span> {monster.attack}
+            <span className="font-semibold">Attack:</span> {monster.attack.toString()}
           </p>
           <p className="mb-2">
-            <span className="font-semibold">Defense:</span> {monster.defense}
+            <span className="font-semibold">Defense:</span> {monster.defense.toString()}
           </p>
           <p>
-            <span className="font-semibold">HP:</span> {monster.hp}
+            <span className="font-semibold">HP:</span> {monster.hp.toString()}
           </p>
         </DialogDescription>
       </DialogContent>
