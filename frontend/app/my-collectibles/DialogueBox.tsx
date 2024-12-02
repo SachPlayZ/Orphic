@@ -31,7 +31,7 @@ export default function MonsterDialog({
         </DialogHeader>
         <div className="relative h-64 w-full mb-4">
           <Image
-            src={monster.image}
+            src={monster.tokenURI}
             alt={monster.name}
             layout="fill"
             objectFit="cover"
