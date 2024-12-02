@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWriteContract } from "wagmi";
 import abi from "@/abi";
+import { Loader2, Sparkles, Zap, Shield, Heart } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
@@ -17,6 +19,9 @@ const GenerateCreature = () => {
   const [rarity, setRarity] = useState<string | null>(null);
   const [stats, setStats] = useState({ attack: 0, defense: 0, hp: 0 });
   const [monsterName, setMonsterName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMinting, setIsMinting] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     const type = searchParams.get("faction");
@@ -62,6 +67,7 @@ const GenerateCreature = () => {
 
   const generateImage = async () => {
     if (!creatureType) return;
+    setIsLoading(true);
 
     const rarityIndex = generateRandomRarity();
     const rarity = RARITIES[rarityIndex];
@@ -88,10 +94,11 @@ const GenerateCreature = () => {
       console.log(imageUrl);
     } catch (error) {
       console.error("Error in image generation:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Automatically generate image on load
   useEffect(() => {
     if (creatureType) {
       generateImage();
@@ -104,6 +111,8 @@ const GenerateCreature = () => {
       return;
     }
 
+    setIsMinting(true);
+
     console.log("Minting monster:", {
       name: monsterName,
       creatureType,
@@ -113,18 +122,12 @@ const GenerateCreature = () => {
     });
 
     try {
-      // Fetch the blob data from the image URL
       const response = await fetch(image);
       const blob = await response.blob();
-
-      // Convert the blob into a File object
       const file = new File([blob], `${monsterName}.png`, { type: blob.type });
-
-      // Create FormData and append the file
       const imgData = new FormData();
       imgData.append("file", file);
 
-      // Send the image to your backend
       const uploadResponse = await fetch("/api/files", {
         method: "POST",
         body: imgData,
@@ -152,13 +155,12 @@ const GenerateCreature = () => {
         rarityEnum = 0;
       }
 
-      // Write to the blockchain contract
       await writeContractAsync({
         address: contractAddress,
         abi: abi,
         functionName: "mintMonster",
         args: [
-          ipfs, // Image IPFS URL
+          ipfs,
           monsterName,
           stats.attack,
           stats.defense,
@@ -167,54 +169,124 @@ const GenerateCreature = () => {
         ],
       });
 
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+
       alert(`Monster "${monsterName}" minted successfully!`);
       router.push("/my-collectibles");
     } catch (error) {
       console.error("Error in handleMint:", error);
       alert("An error occurred while minting the monster.");
+    } finally {
+      setIsMinting(false);
     }
   };
 
+  const rarityColor = {
+    common: "text-gray-400",
+    rare: "text-blue-400",
+    epic: "text-purple-400",
+    legendary: "text-yellow-400",
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
-      {creatureType && rarity && (
-        <div className="mb-4 text-center">
-          <h2 className="text-2xl font-bold">
-            {creatureType.charAt(0).toUpperCase() + creatureType.slice(1)} -{" "}
-            {rarity.toUpperCase()}
-          </h2>
-          <p>Attack: {stats.attack}</p>
-          <p>Defense: {stats.defense}</p>
-          <p>HP: {stats.hp}</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-black text-white p-4">
+      {showWelcome && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-1 rounded-lg">
+            <div className="bg-gray-900 rounded-lg p-8 max-w-md text-center">
+              <h1 className="text-4xl font-bold mb-4 animate-pulse">Welcome, Trainer!</h1>
+              <p className="mb-6">Are you ready to receive your first Mon? An exciting adventure awaits!</p>
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-semibold 
+                           transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+              >
+                Let's Begin!
+              </button>
+            </div>
+          </div>
         </div>
       )}
-      {image && (
-        <div className="max-w-md mb-4">
-          <img
-            src={image}
-            alt="Generated Creature"
-            className="w-full h-auto rounded-lg shadow-lg"
+      <div className="w-full max-w-md bg-gray-800 bg-opacity-50 backdrop-blur-lg rounded-xl p-8 shadow-2xl">
+        <h2 className="text-3xl font-bold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 animate-pulse">
+          Discover Your Mon
+        </h2>
+        {creatureType && rarity && (
+          <div className="mb-6 text-center">
+            <h3 className="text-2xl font-bold mb-4">
+              <span className={`${rarityColor[rarity as keyof typeof rarityColor]}`}>
+                {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
+              </span>{" "}
+              {creatureType.charAt(0).toUpperCase() + creatureType.slice(1)}
+            </h3>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="bg-red-800 bg-opacity-50 p-3 rounded-lg transform transition-all duration-300 hover:scale-105">
+                <Zap className="w-6 h-6 mx-auto mb-2" />
+                <p className="font-semibold">Attack</p>
+                <p className="text-2xl">{stats.attack}</p>
+              </div>
+              <div className="bg-blue-800 bg-opacity-50 p-3 rounded-lg transform transition-all duration-300 hover:scale-105">
+                <Shield className="w-6 h-6 mx-auto mb-2" />
+                <p className="font-semibold">Defense</p>
+                <p className="text-2xl">{stats.defense}</p>
+              </div>
+              <div className="bg-green-800 bg-opacity-50 p-3 rounded-lg transform transition-all duration-300 hover:scale-105">
+                <Heart className="w-6 h-6 mx-auto mb-2" />
+                <p className="font-semibold">HP</p>
+                <p className="text-2xl">{stats.hp}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        {isLoading ? (
+          <div className="flex flex-col justify-center items-center h-64">
+            <Loader2 className="w-16 h-16 animate-spin text-purple-500 mb-4" />
+            <p className="text-lg animate-pulse">Summoning your Mon...</p>
+          </div>
+        ) : (
+          image && (
+            <div className="mb-6 relative group">
+              <img
+                src={image}
+                alt="Generated Creature"
+                className="w-full h-auto rounded-lg shadow-lg transition-all duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                <Sparkles className="w-8 h-8 text-yellow-400 animate-pulse" />
+              </div>
+            </div>
+          )
+        )}
+        <div className="flex items-center mb-4">
+          <input
+            type="text"
+            className="w-full px-4 py-2 text-white bg-gray-700 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all duration-300"
+            placeholder="Name your Mon"
+            value={monsterName}
+            onChange={(e) => setMonsterName(e.target.value)}
           />
+          <button
+            className={`px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-r-lg font-semibold 
+                        transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600
+                        ${(!monsterName || isMinting) && 'opacity-50 cursor-not-allowed'}`}
+            onClick={handleMint}
+            disabled={!monsterName || isMinting}
+          >
+            {isMinting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              'Mint'
+            )}
+          </button>
         </div>
-      )}
-      <div className="flex items-center mb-4">
-        <input
-          type="text"
-          className="px-4 py-2 text-black rounded-l"
-          placeholder="Enter monster name"
-          value={monsterName}
-          onChange={(e) => setMonsterName(e.target.value)}
-        />
-        <button
-          className="px-4 py-2 bg-green-500 rounded-r hover:bg-green-600 transition"
-          onClick={handleMint}
-          disabled={!monsterName}
-        >
-          Mint
-        </button>
       </div>
     </div>
   );
 };
 
 export default GenerateCreature;
+
