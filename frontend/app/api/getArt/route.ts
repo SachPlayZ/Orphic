@@ -21,7 +21,7 @@ async function posthandler(req: NextRequest) {
 
         return new NextResponse(blob, { status: 200, statusText: "OK", headers });
     } catch (error) {
-        return NextResponse.json({ error: "Error" }, { status: 500 });
+        return NextResponse.json({ error: error }, { status: 500 });
     }
 };
 

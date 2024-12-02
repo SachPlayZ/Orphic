@@ -1,27 +1,35 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { motion, useMotionTemplate, useMotionValue } from "framer-motion"
+import React, { useState, useEffect } from "react";
+import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
+import { MotionValue } from "framer-motion";
 
 interface SpotlightBackgroundProps {
-  className?: string
-  children: React.ReactNode
+  className?: string;
+  children: React.ReactNode;
 }
 
-export const SpotlightBackground: React.FC<SpotlightBackgroundProps> = ({ className, children }) => {
-  const mouseX = useMotionValue(0)
-  const mouseY = useMotionValue(0)
-  const [randomString, setRandomString] = useState("")
+export const SpotlightBackground: React.FC<SpotlightBackgroundProps> = ({
+  className,
+  children,
+}) => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const [randomString, setRandomString] = useState("");
 
   useEffect(() => {
-    setRandomString(generateRandomString(20000))
-  }, [])
+    setRandomString(generateRandomString(20000));
+  }, []);
 
-  function onMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent<HTMLDivElement>) {
-    const { left, top } = currentTarget.getBoundingClientRect()
-    mouseX.set(clientX - left)
-    mouseY.set(clientY - top)
-    setRandomString(generateRandomString(20000))
+  function onMouseMove({
+    currentTarget,
+    clientX,
+    clientY,
+  }: React.MouseEvent<HTMLDivElement>) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+    setRandomString(generateRandomString(20000));
   }
 
   return (
@@ -29,15 +37,27 @@ export const SpotlightBackground: React.FC<SpotlightBackgroundProps> = ({ classN
       onMouseMove={onMouseMove}
       className={`relative overflow-hidden ${className}`}
     >
-      <BackgroundSpotlight mouseX={mouseX} mouseY={mouseY} randomString={randomString} />
+      <BackgroundSpotlight
+        mouseX={mouseX}
+        mouseY={mouseY}
+        randomString={randomString}
+      />
       {children}
     </div>
-  )
-}
+  );
+};
 
-function BackgroundSpotlight({ mouseX, mouseY, randomString }: { mouseX: any; mouseY: any; randomString: string }) {
-  const maskImage = useMotionTemplate`radial-gradient(600px at ${mouseX}px ${mouseY}px, white, rgba(255, 255, 255, 0.25) 80%, transparent 100%)`
-  const style = { maskImage, WebkitMaskImage: maskImage }
+function BackgroundSpotlight({
+  mouseX,
+  mouseY,
+  randomString,
+}: {
+  mouseX: MotionValue<number>;
+  mouseY: MotionValue<number>;
+  randomString: string;
+}) {
+  const maskImage = useMotionTemplate`radial-gradient(600px at ${mouseX}px ${mouseY}px, white, rgba(255, 255, 255, 0.25) 80%, transparent 100%)`;
+  const style = { maskImage, WebkitMaskImage: maskImage };
 
   return (
     <>
@@ -54,15 +74,15 @@ function BackgroundSpotlight({ mouseX, mouseY, randomString }: { mouseX: any; mo
         </p>
       </motion.div>
     </>
-  )
+  );
 }
 
-const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+const characters =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const generateRandomString = (length: number) => {
-  let result = ""
+  let result = "";
   for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length))
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
-  return result
-}
-
+  return result;
+};
