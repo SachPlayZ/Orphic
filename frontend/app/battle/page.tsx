@@ -268,14 +268,6 @@ const BattlePage = () => {
           </div>
         )}
 
-        {battleStatus === "active" && (
-          <div className="text-center mt-4">
-            <p className="text-xl font-bold">
-              {isPlayerTurn ? "It's your turn!" : "Opponent's Turn"}
-            </p>
-          </div>
-        )}
-
         {battleStatus === "completed" && (
           <div className="text-center mt-4">
             <p className="text-2xl font-bold">
