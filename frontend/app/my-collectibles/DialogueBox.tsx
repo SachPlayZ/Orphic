@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from "next/image";
-import { Zap, Shield, Heart, X } from 'lucide-react';
+import { Zap, Shield, Heart } from "lucide-react";
 import { Monster } from "./types";
 
 interface MonsterDialogProps {
@@ -47,12 +47,17 @@ export default function MonsterDialog({
         <div className="space-y-4">
           <p className="text-center">
             <span className="font-semibold text-gray-400">Rarity: </span>
-            <span className={`capitalize font-bold ${
-              monster.rarity === 'common' ? 'text-gray-400' :
-              monster.rarity === 'rare' ? 'text-blue-400' :
-              monster.rarity === 'epic' ? 'text-purple-400' :
-              'text-yellow-400'
-            }`}>
+            <span
+              className={`capitalize font-bold ${
+                monster.rarity === "common"
+                  ? "text-gray-400"
+                  : monster.rarity === "rare"
+                  ? "text-blue-400"
+                  : monster.rarity === "epic"
+                  ? "text-purple-400"
+                  : "text-yellow-400"
+              }`}
+            >
               {monster.rarity}
             </span>
           </p>
@@ -78,4 +83,3 @@ export default function MonsterDialog({
     </Dialog>
   );
 }
-

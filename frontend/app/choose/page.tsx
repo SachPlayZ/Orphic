@@ -40,6 +40,7 @@ const Page = () => {
           setFaction("Dragons");
           if (Number(data2) == 0) router.push("/first-mon?faction=dragon");
           else router.push("/play");
+          console.log("Faction:", faction);
         } else if (data === 2) {
           setFaction("Tigers");
           if (Number(data2) == 0) router.push("/first-mon?faction=tiger");
@@ -133,7 +134,6 @@ const FactionChoice = ({
   const factionId = name === "Dragons" ? 1 : 2;
   const { writeContractAsync } = useWriteContract();
   const { address } = useAccount();
-  const router = useRouter();
 
   const handleSelectFaction = async () => {
     try {

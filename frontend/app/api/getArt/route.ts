@@ -20,8 +20,8 @@ async function posthandler(req: NextRequest) {
         headers.set("Content-Type", "image/*");
 
         return new NextResponse(blob, { status: 200, statusText: "OK", headers });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error) {
+        return NextResponse.json({ error: "Error" }, { status: 500 });
     }
 };
 

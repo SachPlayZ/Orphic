@@ -1,31 +1,45 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Sword, ShoppingBag, ShoppingBasketIcon as Collection, Trophy, Activity } from 'lucide-react'
-import { useAccount } from 'wagmi'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import {
+  Sword,
+  ShoppingBag,
+  ShoppingBasketIcon as Collection,
+  Trophy,
+  Activity,
+} from "lucide-react";
+import { useAccount } from "wagmi";
 
 export default function Page() {
-  const router = useRouter()
+  const router = useRouter();
   const [xp, setXp] = useState(75);
+  setXp(75);
   const { address } = useAccount();
 
   const handleBattle = () => {
-    router.push('/battle')
-  }
+    router.push("/battle");
+  };
 
   const handleMarketplace = () => {
-    router.push('/marketplace')
-  }
+    router.push("/marketplace");
+  };
 
   const handleCollectibles = () => {
-    router.push('/my-collectibles')
-  }
+    router.push("/my-collectibles");
+  };
 
   return (
     <div className="container mx-auto p-4 bg-gray-900 min-h-screen text-white">
@@ -37,7 +51,10 @@ export default function Page() {
         </CardHeader>
         <CardContent className="flex items-center space-x-4">
           <Avatar className="h-20 w-20">
-            <AvatarImage src="/placeholder.svg?height=80&width=80" alt="Player Avatar" />
+            <AvatarImage
+              src="/placeholder.svg?height=80&width=80"
+              alt="Player Avatar"
+            />
             <AvatarFallback>PL</AvatarFallback>
           </Avatar>
           <div>
@@ -53,19 +70,20 @@ export default function Page() {
 
       {/* Main Interaction Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Button 
+        <Button
           onClick={handleBattle}
           className="h-20 text-lg bg-red-600 hover:bg-red-700"
         >
-          <Sword className="mr-2" /> <span className='text-lg'>Initialize Battle</span>
+          <Sword className="mr-2" />{" "}
+          <span className="text-lg">Initialize Battle</span>
         </Button>
-        <Button 
+        <Button
           onClick={handleMarketplace}
           className="h-20 text-lg bg-green-600 hover:bg-green-700"
         >
           <ShoppingBag className="mr-2" /> Monster Marketplace
         </Button>
-        <Button 
+        <Button
           onClick={handleCollectibles}
           className="h-20 text-lg bg-blue-600 hover:bg-blue-700"
         >
@@ -83,10 +101,20 @@ export default function Page() {
           </CardHeader>
           <CardContent>
             <ol className="space-y-2">
-              {['Sachindra Kumar Singh', 'Arnab Sengupta', 'Aishi Mukhopadhyay', 'Ritesh Das', 'Ashdude'].map((name, index) => (
+              {[
+                "Sachindra Kumar Singh",
+                "Arnab Sengupta",
+                "Aishi Mukhopadhyay",
+                "Ritesh Das",
+                "Ashdude",
+              ].map((name, index) => (
                 <li key={name} className="flex items-center justify-between">
-                  <span>{index + 1}. {name}</span>
-                  <span className="text-yellow-400"><Trophy className="inline mr-1" /> {1000 - index * 50} pts</span>
+                  <span>
+                    {index + 1}. {name}
+                  </span>
+                  <span className="text-yellow-400">
+                    <Trophy className="inline mr-1" /> {1000 - index * 50} pts
+                  </span>
                 </li>
               ))}
             </ol>
@@ -149,6 +177,5 @@ export default function Page() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }
-

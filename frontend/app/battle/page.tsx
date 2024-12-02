@@ -6,10 +6,7 @@ import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
-import { useReadContract, useWriteContract } from "wagmi";
-import abi from "@/abi";
 import { useRouter } from "next/navigation";
-const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
 // Interfaces for type safety
 interface TurnUpdatePayload {
@@ -21,16 +18,6 @@ interface TurnUpdatePayload {
 
 interface BattleEndPayload {
   winner: string;
-}
-
-function handleMonsterAttributes(tokenId: number) {
-  const { data, isLoading } = useReadContract({
-    address: contractAddress,
-    abi: abi,
-    functionName: "getMonsterDetails",
-    args: [tokenId],
-  });
-  return { data, isLoading };
 }
 
 let socket: Socket;
@@ -47,6 +34,7 @@ const BattlePage = () => {
 
   const [attacking, setAttacking] = useState(false);
   const [defending, setDefending] = useState(false);
+  console.log(attacking, defending);
   const [turn, setTurn] = useState(0);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
 
@@ -59,6 +47,8 @@ const BattlePage = () => {
   >("waiting");
   const [playerHealth, setPlayerHealth] = useState(100);
   const [opponentHealth, setOpponentHealth] = useState(100);
+  console.log(playerHealth, opponentHealth);
+  setPlayerHealth(100);
 
   useEffect(() => {
     socket = io(CLIENT_URL, {

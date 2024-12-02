@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWriteContract } from "wagmi";
 import abi from "@/abi";
-import { Loader2, Sparkles, Zap, Shield, Heart } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { Loader2, Sparkles, Zap, Shield, Heart } from "lucide-react";
+import confetti from "canvas-confetti";
 
 const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
@@ -172,7 +172,7 @@ const GenerateCreature = () => {
       confetti({
         particleCount: 100,
         spread: 70,
-        origin: { y: 0.6 }
+        origin: { y: 0.6 },
       });
 
       alert(`Monster "${monsterName}" minted successfully!`);
@@ -198,14 +198,19 @@ const GenerateCreature = () => {
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-1 rounded-lg">
             <div className="bg-gray-900 rounded-lg p-8 max-w-md text-center">
-              <h1 className="text-4xl font-bold mb-4 animate-pulse">Welcome, Trainer!</h1>
-              <p className="mb-6">Are you ready to receive your first Mon? An exciting adventure awaits!</p>
+              <h1 className="text-4xl font-bold mb-4 animate-pulse">
+                Welcome, Trainer!
+              </h1>
+              <p className="mb-6">
+                Are you ready to receive your first Mon? An exciting adventure
+                awaits!
+              </p>
               <button
                 onClick={() => setShowWelcome(false)}
                 className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-semibold 
                            transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
               >
-                Let's Begin!
+                Let&apos;s Begin!
               </button>
             </div>
           </div>
@@ -218,7 +223,9 @@ const GenerateCreature = () => {
         {creatureType && rarity && (
           <div className="mb-6 text-center">
             <h3 className="text-2xl font-bold mb-4">
-              <span className={`${rarityColor[rarity as keyof typeof rarityColor]}`}>
+              <span
+                className={`${rarityColor[rarity as keyof typeof rarityColor]}`}
+              >
                 {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
               </span>{" "}
               {creatureType.charAt(0).toUpperCase() + creatureType.slice(1)}
@@ -272,15 +279,14 @@ const GenerateCreature = () => {
           <button
             className={`px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-r-lg font-semibold 
                         transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600
-                        ${(!monsterName || isMinting) && 'opacity-50 cursor-not-allowed'}`}
+                        ${
+                          (!monsterName || isMinting) &&
+                          "opacity-50 cursor-not-allowed"
+                        }`}
             onClick={handleMint}
             disabled={!monsterName || isMinting}
           >
-            {isMinting ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              'Mint'
-            )}
+            {isMinting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Mint"}
           </button>
         </div>
       </div>
@@ -289,4 +295,3 @@ const GenerateCreature = () => {
 };
 
 export default GenerateCreature;
-
