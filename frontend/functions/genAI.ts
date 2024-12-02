@@ -1,3 +1,5 @@
+import { generate } from "@/constants/llms";
+
 const BEYOND_API_URL = process.env.BEYOND_BASE_URL + "/api/images/generate";
 
 export const generateCreature = async (creatureType: string, rarity: string): Promise<Blob | null> => {
@@ -68,17 +70,17 @@ export const generateCreature = async (creatureType: string, rarity: string): Pr
         const response = await fetch(BEYOND_API_URL, {
             method: "POST",
             headers: new Headers([
-            ["x-api-key", process.env.BEYOND_API_KEY || ""],
-            ["Content-Type", "application/json"],
+                ["x-api-key", process.env.BEYOND_API_KEY || ""],
+                ["Content-Type", "application/json"],
             ]),
             body: JSON.stringify({
-            "prompt": prompt,
-            "model": "black-forest-labs/FLUX.1-schnell",
-            "options": {
-                "steps": Math.floor(Math.random() * 8) + 4, // randomize steps between 4 and 11
-                "temperature": Math.random() * (0.8 - 0.6) + 0.6, // randomize temperature between 0.6 and 1
-                "cache": false,
-            }
+                "prompt": prompt,
+                "model": "black-forest-labs/FLUX.1-schnell",
+                "options": {
+                    "steps": Math.floor(Math.random() * 8) + 4, // randomize steps between 4 and 11
+                    "temperature": Math.random() * (0.8 - 0.6) + 0.6, // randomize temperature between 0.6 and 1
+                    "cache": false,
+                }
             }),
         });
 
@@ -96,3 +98,33 @@ export const generateCreature = async (creatureType: string, rarity: string): Pr
         return null;
     }
 };
+
+
+export async function executeMove(userQuery: string, moves: Record<string, string>): Promise<string> {
+    /**
+     * Determines the move the user wants to play based on their natural language query.
+     *
+     * @param userQuery - The user's input command.
+     * @param moves - A dictionary mapping move names to their descriptions.
+     * @returns JSON string with the move name or "Invalid Move" if no match is found.
+     */
+
+    const prompt = `
+        You are an AI agent helping determine the correct move in a game based on natural language commands.
+        The game has the following moves:
+
+        ${Object.entries(moves).map(([move, description]) => `${move}: ${description}`).join(", ")}
+
+        Given a user's input query, determine the move they want to execute.
+        Respond strictly in JSON format as:
+        {"move":<move name>}
+        If the query doesn't match any move, respond with:
+        {"move":"Invalid Move"}
+
+        User Query: ${userQuery}
+    `;
+
+    const response = await generate(prompt);
+
+    return response;
+}

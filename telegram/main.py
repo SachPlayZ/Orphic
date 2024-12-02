@@ -18,7 +18,7 @@ def main():
     def send_welcome(message):
         bot.reply_to(message, "Welcome to Orphic Monster Game! 🐉\n"
                               "/mint - Mint a new monster\n"
-                              "/m "/yemonsters - View your monsters\n"
+                              "/mymonsters - View your monsters\n"
                               "/battle - Challenge a friend\n"
                               "/trade - Trade monsters")
 
