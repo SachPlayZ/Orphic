@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useEffect, useState } from "react";
 import io, { Socket } from "socket.io-client";
@@ -20,7 +20,8 @@ interface BattleEndPayload {
 }
 
 let socket: Socket;
-const CLIENT_URL = process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
+const CLIENT_URL =
+  process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
 
 const BattlePage = () => {
   const [socketConnected, setSocketConnected] = useState(false);
@@ -134,7 +135,9 @@ const BattlePage = () => {
         <h1 className="text-4xl font-bold text-center mb-8">Battle Arena</h1>
         
         <div className="text-center mb-4">
-          <p className="text-lg">Battle Status: <span className="font-bold">{battleStatus}</span></p>
+          <p className="text-lg">
+            Battle Status: <span className="font-bold">{battleStatus}</span>
+          </p>
           <p>Current Turn: {turn}</p>
         </div>
 
@@ -155,8 +158,8 @@ const BattlePage = () => {
               <div className="text-center">
                 <p>Health: {playerHealth}/100</p>
                 <div className="w-full bg-red-900 rounded-full h-4 mt-2">
-                  <div 
-                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out" 
+                  <div
+                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
                     style={{ width: `${playerHealth}%` }}
                   ></div>
                 </div>
@@ -182,8 +185,8 @@ const BattlePage = () => {
               <div className="text-center">
                 <p>Health: {opponentHealth}/100</p>
                 <div className="w-full bg-red-900 rounded-full h-4 mt-2">
-                  <div 
-                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out" 
+                  <div
+                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
                     style={{ width: `${opponentHealth}%` }}
                   ></div>
                 </div>
@@ -246,6 +249,6 @@ const BattlePage = () => {
       </div>
     </div>
   );
-}
+};
 
 export default BattlePage;

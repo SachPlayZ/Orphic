@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import abi from "@/abi";
 
-const contractAddress = "0x614A1F64395FD1b925E347AC13812CC48b62f5B7";
+const contractAddress = "0xFfa47E4562D7cc6cDB95a7366E04b644e9DEF000";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -21,24 +21,33 @@ const Page = () => {
   const { data, isLoading } = useReadContract({
     address: contractAddress,
     abi: abi,
-    functionName: "getPlayerFaction",
+    functionName: "playerFaction",
+    args: [address],
+  });
+  const { data: data2, isLoading: isLoading2 } = useReadContract({
+    address: contractAddress,
+    abi: abi,
+    functionName: "getUserTokenCount",
     args: [address],
   });
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !isLoading2) {
+      console.log("Data:", Number(data2));
       setGlobalLoading(false); // Stop loading when the contract data is fetched
       if (data) {
         if (data === 1) {
           setFaction("Dragons");
-          router.push("/play");
+          if (Number(data2) == 0) router.push("/first-mon?faction=dragon");
+          else router.push("/play");
         } else if (data === 2) {
           setFaction("Tigers");
-          router.push("/play");
+          if (Number(data2) == 0) router.push("/first-mon?faction=tiger");
+          else router.push("/play");
         }
       }
     }
-  }, [isLoading, data, router]);
+  }, [isLoading, isLoading2, data, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black overflow-hidden relative">
