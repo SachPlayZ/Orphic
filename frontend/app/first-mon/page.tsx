@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useWriteContract } from "wagmi";
 import abi from "@/abi";
 
-const contractAddress = "0xFfa47E4562D7cc6cDB95a7366E04b644e9DEF000";
+const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
 const RARITIES = ["common", "rare", "epic", "legendary"];
 

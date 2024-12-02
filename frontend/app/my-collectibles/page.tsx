@@ -7,7 +7,7 @@ import { Monster } from "./types";
 import { useAccount, useReadContract } from "wagmi";
 import abi from "@/abi";
 
-const contractAddress = "0xFfa47E4562D7cc6cDB95a7366E04b644e9DEF000";
+const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
 export default function MonsterCollectiblesPage() {
   const { address } = useAccount();
