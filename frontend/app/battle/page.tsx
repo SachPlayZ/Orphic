@@ -7,105 +7,138 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 
+// Interfaces for type safety
+interface TurnUpdatePayload {
+  currentTurn: number;
+  playerTurn: boolean;
+  playerHealth: number;
+  opponentHealth: number;
+}
+
+interface BattleEndPayload {
+  winner: string;
+}
+
 let socket: Socket;
 const CLIENT_URL = process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
 
 const BattlePage = () => {
   const [socketConnected, setSocketConnected] = useState(false);
   console.log(socketConnected);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const { address } = useAccount();
+  
   const [attacking, setAttacking] = useState(false);
   const [defending, setDefending] = useState(false);
   const [turn, setTurn] = useState(0);
-  const [isPlayerTurn, setIsPlayerTurn] = useState(false);
+  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+  
   const [battleStatus, setBattleStatus] = useState<'waiting' | 'active' | 'completed'>('waiting');
   const [playerHealth, setPlayerHealth] = useState(100);
   const [opponentHealth, setOpponentHealth] = useState(100);
 
-  const { address } = useAccount();
-
   useEffect(() => {
-    // Initialize socket connection
-    socket = io(CLIENT_URL);
+    socket = io(CLIENT_URL, {
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    });
 
-    // Setup connection and game events
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      setSocketConnected(false);
+      setIsLoading(false);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+      setSocketConnected(false);
+      setIsLoading(false);
+    });
+
     socket.emit("setup", { address });
 
-    // Connection established
     socket.on("connected", () => {
       setSocketConnected(true);
+      setIsLoading(false);
       console.log("Socket connected");
     });
 
-    // Turn management
-    socket.on("turnUpdate", (data: { currentTurn: number, playerTurn: boolean }) => {
+    socket.on("turnUpdate", (data: TurnUpdatePayload) => {
       setTurn(data.currentTurn);
       setIsPlayerTurn(data.playerTurn);
-    });
-
-    // Battle state updates
-    socket.on("battleStart", () => {
-      setBattleStatus('active');
-      setPlayerHealth(100);
-      setOpponentHealth(100);
-    });
-
-    // Health updates
-    socket.on("healthUpdate", (data: { 
-      playerHealth: number, 
-      opponentHealth: number 
-    }) => {
       setPlayerHealth(data.playerHealth);
       setOpponentHealth(data.opponentHealth);
     });
 
-    // Battle end
-    socket.on("battleEnd", (data: { winner: string }) => {
-      setBattleStatus('completed');
-      console.log(`Battle ended. Winner: ${data.winner}`);
+    socket.on("battleStart", () => {
+      setBattleStatus('active');
+      setPlayerHealth(100);
+      setOpponentHealth(100);
+      setTurn(0);
+      
+      socket.emit("readyForBattle", { address });
     });
 
-    // Cleanup socket on component unmount
+    socket.on("battleEnd", (data: BattleEndPayload) => {
+      setBattleStatus('completed');
+      console.log(`Battle ended. Winner: ${data.winner}`);
+      setOpponentHealth(0);
+    });
+
+    socket.on("actionComplete", () => {
+      setAttacking(false);
+      setDefending(false);
+    });
+
     return () => {
       socket.disconnect();
     };
   }, [address]);
 
-  // Attack handler
   const handleAttack = () => {
-    if (!isPlayerTurn || battleStatus !== 'active') return;
+    if (!isPlayerTurn && !isPlayerTurn) return;
 
     socket.emit("playerAttack", { address });
     setAttacking(true);
-
-    // Reset attack state after a short delay
-    setTimeout(() => setAttacking(false), 1000);
   };
 
-  // Defend handler
   const handleDefend = () => {
-    if (!isPlayerTurn || battleStatus !== 'active') return;
+    if (!isPlayerTurn && !isPlayerTurn) return;
 
     socket.emit("playerDefend", { address });
     setDefending(true);
-
-    // Reset defend state after a short delay
-    setTimeout(() => setDefending(false), 1000);
   };
 
+  const handleRestartBattle = () => {
+    if (battleStatus === 'completed') {
+      socket.emit("restartBattle", { address });
+      setBattleStatus('waiting');
+    }
+  };
+
+  console.log(isPlayerTurn);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        Connecting to battle arena...
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-700 text-white">
+    <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto p-4">
         <h1 className="text-4xl font-bold text-center mb-8">Battle Arena</h1>
         
-        {/* Battle Status */}
         <div className="text-center mb-4">
           <p className="text-lg">Battle Status: <span className="font-bold">{battleStatus}</span></p>
           <p>Current Turn: {turn}</p>
         </div>
 
-        {/* Battlefield */}
         <div className="flex justify-between items-center mb-8">
-          {/* Player Card */}
           <Card className="w-1/3 bg-gray-800 border-2 border-blue-500">
             <CardHeader>
               <CardTitle className="text-center">Your Card</CardTitle>
@@ -131,10 +164,8 @@ const BattlePage = () => {
             </CardContent>
           </Card>
 
-          {/* VS */}
           <div className="text-4xl font-bold">VS</div>
 
-          {/* Opponent Card */}
           <Card className="w-1/3 bg-gray-800 border-2 border-red-500">
             <CardHeader>
               <CardTitle className="text-center">Opponent</CardTitle>
@@ -161,38 +192,60 @@ const BattlePage = () => {
           </Card>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-center space-x-4">
-          <Button 
-            onClick={handleAttack} 
-            disabled={!isPlayerTurn || battleStatus !== 'active'}
-            className={`${isPlayerTurn && battleStatus === 'active' 
-              ? 'bg-red-500 hover:bg-red-600' 
-              : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
-          >
-            {attacking ? 'Attacking...' : 'Attack'}
-          </Button>
-          <Button 
-            onClick={handleDefend} 
-            disabled={!isPlayerTurn || battleStatus !== 'active'}
-            className={`${isPlayerTurn && battleStatus === 'active' 
-              ? 'bg-blue-500 hover:bg-blue-600' 
-              : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
-          >
-            {defending ? 'Defending...' : 'Defend'}
-          </Button>
-        </div>
+        {battleStatus === 'active' ? (
+          <div className="flex justify-center space-x-4">
+            <Button 
+              onClick={handleAttack}
+              disabled={!isPlayerTurn}
+              className={`${(isPlayerTurn || isPlayerTurn)
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
+            >
+              {attacking ? 'Attacking...' : 'Attack'}
+            </Button>
+            <Button 
+              onClick={handleDefend}
+              disabled={!isPlayerTurn}
+              className={`${(isPlayerTurn || isPlayerTurn) 
+                ? 'bg-blue-500 hover:bg-blue-600' 
+                : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
+            >
+              {defending ? 'Defending...' : 'Defend'}
+            </Button>
+          </div>
+        ) : battleStatus === 'completed' ? (
+          <div className="flex justify-center">
+            <Button 
+              onClick={handleRestartBattle}
+              className="bg-green-500 hover:bg-green-600 transition-all duration-300"
+            >
+              Restart Battle
+            </Button>
+          </div>
+        ) : (
+          <div className="text-center text-xl">
+            Waiting for battle to start...
+          </div>
+        )}
 
-        {/* Turn Indicator */}
-        <div className="text-center mt-4">
-          <p className="text-xl font-bold">
-            {isPlayerTurn ? "It's your turn!" : "Opponent's turn"}
-          </p>
-        </div>
+        {battleStatus === 'active' && (
+          <div className="text-center mt-4">
+            <p className="text-xl font-bold"> 
+              {isPlayerTurn ? "It's your turn!" : "Opponent's Turn"}
+            </p>
+          </div>
+        )}
+
+        {battleStatus === 'completed' && (
+          <div className="text-center mt-4">
+            <p className="text-2xl font-bold">
+              {playerHealth > 0 ? "You Won!" : "You Lost!"}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export default BattlePage;
-

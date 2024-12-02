@@ -31,10 +31,10 @@ const Page = () => {
       if (data) {
         if (data === 1) {
           setFaction("Dragons");
-          router.push("/battle");
+          router.push("/play");
         } else if (data === 2) {
           setFaction("Tigers");
-          router.push("/battle");
+          router.push("/play");
         }
       }
     }
@@ -127,7 +127,7 @@ const FactionChoice = ({
         {
           onSuccess: () => {
             console.log("Faction selected successfully");
-            router.push("/battle");
+            router.push("/play");
           },
         }
       );
