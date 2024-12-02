@@ -34,6 +34,7 @@ const BattlePage = () => {
   const [defending, setDefending] = useState(false);
   const [turn, setTurn] = useState(0);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+  const [winner, setWinner] = useState<string | null>(null);
   
   const [battleStatus, setBattleStatus] = useState<'waiting' | 'active' | 'completed'>('waiting');
   const [playerHealth, setPlayerHealth] = useState(100);
@@ -86,6 +87,7 @@ const BattlePage = () => {
       setBattleStatus('completed');
       console.log(`Battle ended. Winner: ${data.winner}`);
       setOpponentHealth(0);
+      setWinner(data.winner);
     });
 
     socket.on("actionComplete", () => {
@@ -116,6 +118,7 @@ const BattlePage = () => {
     if (battleStatus === 'completed') {
       socket.emit("restartBattle", { address });
       setBattleStatus('waiting');
+      setOpponentHealth(0);
     }
   };
 
@@ -242,7 +245,7 @@ const BattlePage = () => {
         {battleStatus === 'completed' && (
           <div className="text-center mt-4">
             <p className="text-2xl font-bold">
-              {playerHealth > 0 ? "You Won!" : "You Lost!"}
+              {playerHealth > 0 && `Winner: ${winner}`}
             </p>
           </div>
         )}
