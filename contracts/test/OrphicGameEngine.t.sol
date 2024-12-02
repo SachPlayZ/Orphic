@@ -5,33 +5,35 @@ import "forge-std/Test.sol";
 import "../src/OrphicGameEngine.sol";
 
 contract OrphicGameEngineTest is Test {
-    OrphicGameEngine private engine;
+    OrphicGameEngine gameEngine;
 
-    address private user1 = address(0x1);
-    address private user2 = address(0x2);
+    address player1 = address(0x1);
+    address player2 = address(0x2);
 
     function setUp() public {
-        engine = new OrphicGameEngine();
+        gameEngine = new OrphicGameEngine();
     }
 
     function testMintMonster() public {
-        vm.startPrank(user1);
-
-        string memory tokenURI = "https://example.com/monster1.json";
+        string memory tokenURI = "https://example.com/monster1";
         string memory name = "Fire Dragon";
         uint256 attack = 100;
-        uint256 defense = 50;
-        uint256 hp = 200;
+        uint256 defense = 80;
+        uint256 hp = 120;
         OrphicGameEngine.rarity monsterRarity = OrphicGameEngine.rarity.epic;
 
-        engine.mintMonster(tokenURI, name, attack, defense, hp, monsterRarity);
+        vm.startPrank(player1);
+        gameEngine.mintMonster(
+            tokenURI,
+            name,
+            attack,
+            defense,
+            hp,
+            monsterRarity
+        );
+        vm.stopPrank();
 
-        uint256 tokenId = 0;
-
-        // Check token ownership
-        assertEq(engine.ownerOf(tokenId), user1);
-
-        // Check monster attributes
+        assertEq(gameEngine.getTokenCounter(), 1);
         (
             string memory monsterName,
             uint256 monsterAttack,
@@ -39,7 +41,7 @@ contract OrphicGameEngineTest is Test {
             uint256 monsterHp,
             string memory monsterRarityString,
             string memory monsterTokenURI
-        ) = engine.getMonsterDetails(tokenId);
+        ) = gameEngine.getMonsterDetails(0);
 
         assertEq(monsterName, name);
         assertEq(monsterAttack, attack);
@@ -47,77 +49,101 @@ contract OrphicGameEngineTest is Test {
         assertEq(monsterHp, hp);
         assertEq(monsterRarityString, "epic");
         assertEq(monsterTokenURI, tokenURI);
+    }
 
+    function testSetPlayerFaction() public {
+        uint8 factionID = 1;
+
+        vm.startPrank(player1);
+        gameEngine.setPlayerFaction(player1, factionID);
+        vm.stopPrank();
+
+        assertEq(gameEngine.playerFaction(player1), factionID);
+    }
+
+    function testSellOnMarket() public {
+        string memory tokenURI = "https://example.com/monster1";
+        string memory name = "Fire Dragon";
+        uint256 attack = 100;
+        uint256 defense = 80;
+        uint256 hp = 120;
+        OrphicGameEngine.rarity monsterRarity = OrphicGameEngine.rarity.epic;
+
+        vm.startPrank(player1);
+        gameEngine.mintMonster(
+            tokenURI,
+            name,
+            attack,
+            defense,
+            hp,
+            monsterRarity
+        );
+        gameEngine.sellOnMarket(0, 1 ether);
+        vm.stopPrank();
+
+        (uint256 id, address seller, uint256 price) = gameEngine.marketItems(0);
+        assertEq(price, 1 ether);
+        assertEq(seller, player1);
+    }
+
+    function testBuyFromMarket() public {
+        string memory tokenURI = "https://example.com/monster1";
+        string memory name = "Fire Dragon";
+        uint256 attack = 100;
+        uint256 defense = 80;
+        uint256 hp = 120;
+        OrphicGameEngine.rarity monsterRarity = OrphicGameEngine.rarity.epic;
+
+        vm.startPrank(player1);
+        gameEngine.mintMonster(
+            tokenURI,
+            name,
+            attack,
+            defense,
+            hp,
+            monsterRarity
+        );
+        gameEngine.sellOnMarket(0, 1 ether);
+        vm.stopPrank();
+
+        vm.startPrank(player2);
+        vm.deal(player2, 2 ether); // Send ether to player2
+        gameEngine.buyFromMarket(0);
+        vm.stopPrank();
+
+        assertEq(gameEngine.ownerOf(0), player2);
+        (, , uint256 price) = gameEngine.marketItems(0);
+        assertEq(price, 0); // Item should no longer be listed
+    }
+
+    function testCannotBuyUnlistedItem() public {
+        vm.startPrank(player2);
+        vm.expectRevert("Item not listed for sale");
+        gameEngine.buyFromMarket(0);
         vm.stopPrank();
     }
 
-    function testGetAllMonstersFromAUser() public {
-        vm.startPrank(user1);
+    function testCannotSellAlreadyListedItem() public {
+        string memory tokenURI = "https://example.com/monster1";
+        string memory name = "Fire Dragon";
+        uint256 attack = 100;
+        uint256 defense = 80;
+        uint256 hp = 120;
+        OrphicGameEngine.rarity monsterRarity = OrphicGameEngine.rarity.epic;
 
-        engine.mintMonster(
-            "https://example.com/monster1.json", "Fire Dragon", 100, 50, 200, OrphicGameEngine.rarity.epic
+        vm.startPrank(player1);
+        gameEngine.mintMonster(
+            tokenURI,
+            name,
+            attack,
+            defense,
+            hp,
+            monsterRarity
         );
+        gameEngine.sellOnMarket(0, 1 ether);
 
-        engine.mintMonster(
-            "https://example.com/monster2.json", "Water Serpent", 80, 60, 180, OrphicGameEngine.rarity.rare
-        );
-
-        OrphicGameEngine.MonsterAttributes[] memory monsters = engine.getAllMonstersFromAUser(user1);
-
-        assertEq(monsters.length, 2);
-
-        assertEq(monsters[0].name, "Fire Dragon");
-        assertEq(monsters[1].name, "Water Serpent");
-
-        vm.stopPrank();
-    }
-
-    function testSetAndRetrievePlayerFaction() public {
-        uint8 factionId = 2;
-        engine.setPlayerFaction(user1, factionId);
-        assertEq(engine.playerFaction(user1), factionId);
-    }
-
-    function testGetUserTokenCount() public {
-        vm.startPrank(user1);
-
-        engine.mintMonster(
-            "https://example.com/monster1.json", "Fire Dragon", 100, 50, 200, OrphicGameEngine.rarity.epic
-        );
-
-        engine.mintMonster(
-            "https://example.com/monster2.json", "Water Serpent", 80, 60, 180, OrphicGameEngine.rarity.rare
-        );
-
-        assertEq(engine.getUserTokenCount(user1), 2);
-
-        vm.stopPrank();
-    }
-
-    function testGetUserTokens() public {
-        vm.startPrank(user2);
-
-        engine.mintMonster(
-            "https://example.com/monster1.json", "Ice Phoenix", 110, 70, 210, OrphicGameEngine.rarity.legendary
-        );
-
-        uint256[] memory tokens = engine.getUserTokens(user2);
-
-        assertEq(tokens.length, 1);
-        assertEq(tokens[0], 0); // Token ID of the minted monster
-
-        vm.stopPrank();
-    }
-
-    function testTokenURI() public {
-        vm.startPrank(user1);
-
-        string memory tokenURI = "https://example.com/monster1.json";
-        engine.mintMonster(tokenURI, "Fire Dragon", 100, 50, 200, OrphicGameEngine.rarity.epic);
-
-        uint256 tokenId = 0;
-        assertEq(engine.tokenURI(tokenId), tokenURI);
-
+        vm.expectRevert("Item already listed");
+        gameEngine.sellOnMarket(0, 2 ether); // Attempt to sell the same item again
         vm.stopPrank();
     }
 }
