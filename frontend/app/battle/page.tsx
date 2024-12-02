@@ -6,6 +6,10 @@ import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import { useReadContract, useWriteContract } from "wagmi";
+import abi from "@/abi";
+import { useRouter } from "next/navigation";
+const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
 // Interfaces for type safety
 interface TurnUpdatePayload {
@@ -19,24 +23,40 @@ interface BattleEndPayload {
   winner: string;
 }
 
+function handleMonsterAttributes(tokenId: number) {
+  const { data, isLoading } = useReadContract({
+    address: contractAddress,
+    abi: abi,
+    functionName: "getMonsterDetails",
+    args: [tokenId],
+  });
+  return { data, isLoading };
+}
+
 let socket: Socket;
 const CLIENT_URL =
   process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
 
 const BattlePage = () => {
+  const router = useRouter();
   const [socketConnected, setSocketConnected] = useState(false);
   console.log(socketConnected);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const { address } = useAccount();
-  
+
   const [attacking, setAttacking] = useState(false);
   const [defending, setDefending] = useState(false);
   const [turn, setTurn] = useState(0);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+
+  const [playerOneHealth, setPlayerOneHealth] = useState(100);
+  const [playerTwoHealth, setPlayerTwoHealth] = useState(100);
   const [winner, setWinner] = useState<string | null>(null);
-  
-  const [battleStatus, setBattleStatus] = useState<'waiting' | 'active' | 'completed'>('waiting');
+
+  const [battleStatus, setBattleStatus] = useState<
+    "waiting" | "active" | "completed"
+  >("waiting");
   const [playerHealth, setPlayerHealth] = useState(100);
   const [opponentHealth, setOpponentHealth] = useState(100);
 
@@ -44,17 +64,17 @@ const BattlePage = () => {
     socket = io(CLIENT_URL, {
       reconnection: true,
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionDelay: 1000,
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+    socket.on("connect_error", (error) => {
+      console.error("Connection error:", error);
       setSocketConnected(false);
       setIsLoading(false);
     });
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
       setSocketConnected(false);
       setIsLoading(false);
     });
@@ -70,23 +90,23 @@ const BattlePage = () => {
     socket.on("turnUpdate", (data: TurnUpdatePayload) => {
       setTurn(data.currentTurn);
       setIsPlayerTurn(data.playerTurn);
-      setPlayerHealth(data.playerHealth);
-      setOpponentHealth(data.opponentHealth);
+      setPlayerOneHealth(data.playerHealth);
+      setPlayerTwoHealth(data.opponentHealth);
     });
 
     socket.on("battleStart", () => {
-      setBattleStatus('active');
-      setPlayerHealth(100);
-      setOpponentHealth(100);
+      setBattleStatus("active");
+      setPlayerOneHealth(100);
+      setPlayerTwoHealth(100);
       setTurn(0);
-      
+
       socket.emit("readyForBattle", { address });
     });
 
     socket.on("battleEnd", (data: BattleEndPayload) => {
-      setBattleStatus('completed');
+      setBattleStatus("completed");
       console.log(`Battle ended. Winner: ${data.winner}`);
-      setOpponentHealth(0);
+      setPlayerTwoHealth(0);
       setWinner(data.winner);
     });
 
@@ -115,11 +135,15 @@ const BattlePage = () => {
   };
 
   const handleRestartBattle = () => {
-    if (battleStatus === 'completed') {
+    if (battleStatus === "completed") {
       socket.emit("restartBattle", { address });
-      setBattleStatus('waiting');
+      setBattleStatus("waiting");
       setOpponentHealth(0);
     }
+  };
+
+  const handleReturnToMainmenu = () => {
+    router.push("/play");
   };
 
   console.log(isPlayerTurn);
@@ -136,7 +160,7 @@ const BattlePage = () => {
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto p-4">
         <h1 className="text-4xl font-bold text-center mb-8">Battle Arena</h1>
-        
+
         <div className="text-center mb-4">
           <p className="text-lg">
             Battle Status: <span className="font-bold">{battleStatus}</span>
@@ -147,7 +171,7 @@ const BattlePage = () => {
         <div className="flex justify-between items-center mb-8 text-white">
           <Card className="w-1/3 bg-gray-800 border-2 border-blue-500">
             <CardHeader>
-              <CardTitle className="text-center">Player1: {address}</CardTitle>
+              <CardTitle className="text-center">Player1</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative h-48 mb-4">
@@ -159,11 +183,11 @@ const BattlePage = () => {
                 />
               </div>
               <div className="text-center">
-                <p>Health: {playerHealth}/100</p>
+                <p>Health: {playerOneHealth}/100</p>
                 <div className="w-full bg-red-900 rounded-full h-4 mt-2">
                   <div
                     className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
-                    style={{ width: `${playerHealth}%` }}
+                    style={{ width: `${playerOneHealth}%` }}
                   ></div>
                 </div>
               </div>
@@ -174,7 +198,7 @@ const BattlePage = () => {
 
           <Card className="w-1/3 bg-gray-800 border-2 border-red-500">
             <CardHeader>
-              <CardTitle className="text-center">Player2: {address}</CardTitle>
+              <CardTitle className="text-center">Player2</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative h-48 mb-4">
@@ -186,11 +210,11 @@ const BattlePage = () => {
                 />
               </div>
               <div className="text-center">
-                <p>Health: {opponentHealth}/100</p>
+                <p>Health: {playerTwoHealth}/100</p>
                 <div className="w-full bg-red-900 rounded-full h-4 mt-2">
                   <div
                     className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
-                    style={{ width: `${opponentHealth}%` }}
+                    style={{ width: `${playerTwoHealth}%` }}
                   ></div>
                 </div>
               </div>
@@ -198,34 +222,44 @@ const BattlePage = () => {
           </Card>
         </div>
 
-        {battleStatus === 'active' ? (
+        {battleStatus === "active" ? (
           <div className="flex justify-center space-x-4">
-            <Button 
+            <Button
               onClick={handleAttack}
-              disabled={!isPlayerTurn}
-              className={`${(isPlayerTurn || isPlayerTurn)
-                ? 'bg-red-500 hover:bg-red-600' 
-                : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
+              disabled={false}
+              className={`${
+                isPlayerTurn || isPlayerTurn
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-gray-600 cursor-not-allowed"
+              } transition-all duration-300`}
             >
-              {attacking ? 'Attacking...' : 'Attack'}
+              Attack
             </Button>
-            <Button 
+            <Button
               onClick={handleDefend}
-              disabled={!isPlayerTurn}
-              className={`${(isPlayerTurn || isPlayerTurn) 
-                ? 'bg-blue-500 hover:bg-blue-600' 
-                : 'bg-gray-600 cursor-not-allowed'} transition-all duration-300`}
+              disabled={false}
+              className={`${
+                isPlayerTurn || isPlayerTurn
+                  ? "bg-blue-500 hover:bg-blue-600"
+                  : "bg-gray-600 cursor-not-allowed"
+              } transition-all duration-300`}
             >
-              {defending ? 'Defending...' : 'Defend'}
+              Defend
             </Button>
           </div>
-        ) : battleStatus === 'completed' ? (
-          <div className="flex justify-center">
-            <Button 
+        ) : battleStatus === "completed" ? (
+          <div className="flex flex-col items-center justify-center gap-y-4">
+            <Button
               onClick={handleRestartBattle}
               className="bg-green-500 hover:bg-green-600 transition-all duration-300"
             >
               Restart Battle
+            </Button>
+            <Button
+              onClick={handleReturnToMainmenu}
+              className="bg-blue-500 hover:bg-blue-600 transition-all duration-300"
+            >
+              Return to Mainmenu
             </Button>
           </div>
         ) : (
@@ -234,18 +268,18 @@ const BattlePage = () => {
           </div>
         )}
 
-        {battleStatus === 'active' && (
+        {battleStatus === "active" && (
           <div className="text-center mt-4">
-            <p className="text-xl font-bold"> 
+            <p className="text-xl font-bold">
               {isPlayerTurn ? "It's your turn!" : "Opponent's Turn"}
             </p>
           </div>
         )}
 
-        {battleStatus === 'completed' && (
+        {battleStatus === "completed" && (
           <div className="text-center mt-4">
             <p className="text-2xl font-bold">
-              {playerHealth > 0 && `Winner: ${winner}`}
+              {playerOneHealth > 0 && `Winner: ${winner}`}
             </p>
           </div>
         )}

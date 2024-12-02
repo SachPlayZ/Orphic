@@ -83,7 +83,7 @@ export const generate = async (
 }
 
 
-(async () => {
-    const response = await generateResponse("Who are you?");
-    console.log(response);
-})();
+// (async () => {
+//     const response = await generate("Who are you?");
+//     console.log(response);
+// })();
