@@ -18,7 +18,7 @@ const Page = () => {
   const [faction, setFaction] = useState<string | undefined>(undefined);
   const [globalLoading, setGlobalLoading] = useState(true); // Global loading state
   const router = useRouter();
-  const { data, isLoading } = useReadContract({
+  const { data, isLoading, refetch } = useReadContract({
     address: contractAddress,
     abi: abi,
     functionName: "playerFaction",
@@ -58,7 +58,7 @@ const Page = () => {
       ) : !isConnected ? (
         <WalletConnectionScreen />
       ) : (
-        <FactionSelectionScreen />
+        <FactionSelectionScreen refetch={refetch} />
       )}
     </div>
   );
@@ -84,7 +84,7 @@ const WalletConnectionScreen = () => {
   );
 };
 
-const FactionSelectionScreen = () => {
+const FactionSelectionScreen = ({ refetch }: { refetch: () => void }) => {
   return (
     <>
       <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-500 opacity-20 blur-3xl rounded-full"></div>
@@ -100,8 +100,18 @@ const FactionSelectionScreen = () => {
         </span>
       </motion.h1>
       <div className="flex w-full justify-between relative z-10">
-        <FactionChoice image="/Dragon.png" name="Dragons" side="left" />
-        <FactionChoice image="/Tiger.png" name="Tigers" side="right" />
+        <FactionChoice
+          image="/Dragon.png"
+          name="Dragons"
+          side="left"
+          refetch={refetch}
+        />
+        <FactionChoice
+          image="/Tiger.png"
+          name="Tigers"
+          side="right"
+          refetch={refetch}
+        />
       </div>
     </>
   );
@@ -111,10 +121,12 @@ const FactionChoice = ({
   image,
   name,
   side,
+  refetch,
 }: {
   image: string;
   name: string;
   side: "left" | "right";
+  refetch: () => void;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -136,12 +148,12 @@ const FactionChoice = ({
         {
           onSuccess: () => {
             console.log("Faction selected successfully");
+            refetch(); // Call the refetch function passed from the parent
           },
         }
       );
     } catch (error) {
       console.error("Error selecting faction:", error);
-      // Optionally, you could add error handling here (e.g., show an error message)
     } finally {
       setIsLoading(false);
     }
