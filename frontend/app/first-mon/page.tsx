@@ -129,6 +129,7 @@ const GenerateCreature = () => {
         method: "POST",
         body: imgData,
       });
+      console.log(uploadResponse);
 
       if (!uploadResponse.ok) {
         console.error(
@@ -138,7 +139,7 @@ const GenerateCreature = () => {
         return;
       }
       let rarityEnum;
-      const ipfs = await uploadResponse;
+      const ipfs = await uploadResponse.json();
       if (rarity == "common") {
         rarityEnum = 0;
       } else if (rarity == "rare") {
