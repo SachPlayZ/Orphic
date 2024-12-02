@@ -32,11 +32,7 @@ contract OrphicGameEngine is ERC721 {
 
     mapping(uint256 => MonsterAttributes) public monsterAttributes;
 
-    event MonsterMinted(
-        address indexed owner,
-        uint256 tokenId,
-        string monsterName
-    );
+    event MonsterMinted(address indexed owner, uint256 tokenId, string monsterName);
 
     constructor() ERC721("Monsters", "MON") {
         tokenCounter = 0;
@@ -73,9 +69,7 @@ contract OrphicGameEngine is ERC721 {
         playerFaction[_player] = _factionID;
     }
 
-    function _rarityToString(
-        rarity _rarity
-    ) internal pure returns (string memory) {
+    function _rarityToString(rarity _rarity) internal pure returns (string memory) {
         if (_rarity == rarity.common) return "common";
         if (_rarity == rarity.rare) return "rare";
         if (_rarity == rarity.epic) return "epic";
@@ -83,15 +77,11 @@ contract OrphicGameEngine is ERC721 {
         revert OrphicGameEngine__InvalidRarity();
     }
 
-    function rarityToString(
-        rarity _rarity
-    ) public pure returns (string memory) {
+    function rarityToString(rarity _rarity) public pure returns (string memory) {
         return _rarityToString(_rarity);
     }
 
-    function getMonsterDetails(
-        uint256 tokenId
-    )
+    function getMonsterDetails(uint256 tokenId)
         public
         view
         returns (
@@ -104,19 +94,10 @@ contract OrphicGameEngine is ERC721 {
         )
     {
         MonsterAttributes memory monster = monsterAttributes[tokenId];
-        return (
-            monster.name,
-            monster.attack,
-            monster.defense,
-            monster.hp,
-            monster.rarity,
-            monster.tokenURI
-        );
+        return (monster.name, monster.attack, monster.defense, monster.hp, monster.rarity, monster.tokenURI);
     }
 
-    function getUserTokens(
-        address user
-    ) public view returns (uint256[] memory) {
+    function getUserTokens(address user) public view returns (uint256[] memory) {
         return userTokens[user];
     }
 
@@ -124,15 +105,11 @@ contract OrphicGameEngine is ERC721 {
         return userTokenCount[user];
     }
 
-    function tokenURI(
-        uint256 tokenId
-    ) public view virtual override returns (string memory) {
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         return monsterAttributes[tokenId].tokenURI;
     }
 
-    function getAllMonstersFromAUser(
-        address user
-    ) public view returns (MonsterAttributes[] memory) {
+    function getAllMonstersFromAUser(address user) public view returns (MonsterAttributes[] memory) {
         uint256[] memory tokenIds = userTokens[user];
         uint256 count = tokenIds.length;
         MonsterAttributes[] memory monsters = new MonsterAttributes[](count);

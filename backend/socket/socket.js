@@ -12,137 +12,206 @@ const corsOpts = {
 const server = http.createServer(app);
 const io = new Server(server, { cors: corsOpts });
 
-const players = {}; // Map of userID to socket ID
-const games = {};   // Map of game ID to game state
+// Improved type definitions
+
+const players = {};
+const games = {};
 
 io.on("connection", (socket) => {
   console.log("User connected", socket.id);
-
-  const userID = socket.handshake.query.userID;
-  if (userID !== "undefined") {
-    players[userID] = socket.id;
-  }
 
   // Emit setup confirmation
   socket.emit("connected");
 
   // Start a battle when two players are ready
   socket.on("setup", ({ address }) => {
-    players[socket.id] = { address, health: 100, ready: true };
+    // More robust player registration
+    players[address] = { 
+      address, 
+      socketId: socket.id, 
+      health: 100, 
+      ready: true 
+    };
+    
+    socket.join(address);
     checkForBattle();
+  });
+
+  // Player ready for battle
+  socket.on("readyForBattle", ({ address }) => {
+    const game = findGameByAddress(address);
+    if (game) {
+      // Send turn update
+      io.to(address).emit("turnUpdate", {
+        currentTurn: game.turn,
+        playerTurn: game.currentTurn,
+        playerHealth: address === game.players.player1.address 
+          ? game.players.player1.health 
+          : game.players.player2.health,
+        opponentHealth: address === game.players.player1.address 
+          ? game.players.player2.health 
+          : game.players.player1.health
+      });
+    }
   });
 
   // Handle player attack
   socket.on("playerAttack", ({ address }) => {
     const game = findGameByAddress(address);
-    if (!game || game.currentTurn !== address) return;
-
-    const opponent = getOpponent(game, address);
-    game.players[opponent].health -= Math.floor(Math.random() * 20) + 10; // Random damage
-    checkBattleStatus(game);
-
-    game.currentTurn = opponent; // Switch turn
-    io.to(game.id).emit("turnUpdate", {
-      currentTurn: game.turn,
-      playerTurn: game.currentTurn === address,
-    });
-    io.to(game.id).emit("healthUpdate", {
-      playerHealth: game.players[address].health,
-      opponentHealth: game.players[opponent].health,
-    });
+    if (!game) return;
+    if (game.currentTurn !== address) {
+      socket.emit("error", { message: "Not your turn!" });
+      return;
+    }
+  
+    // Determine attacker and defender
+    const isPlayer1 = game.players.player1.address === address;
+    const opponent = isPlayer1 
+      ? game.players.player2 
+      : game.players.player1;
+    
+    const damage = Math.floor(Math.random() * 20) + 10;
+    opponent.health = Math.max(0, opponent.health - damage);
+  
+    // Check if the game has ended after the attack
+    if (opponent.health <= 0) {
+      io.to(game.id).emit("battleEnd", { winner: address });
+      delete games[game.id];
+      return;
+    }
+  
+    // Transition to the next turn
+    transitionTurn(game);
   });
-
+  
   // Handle player defend
   socket.on("playerDefend", ({ address }) => {
     const game = findGameByAddress(address);
     if (!game || game.currentTurn !== address) return;
 
-    const self = game.players[address];
-    self.health += Math.min(10, 100 - self.health); // Heal a small amount
-    game.currentTurn = getOpponent(game, address); // Switch turn
+    // Determine defending player
+    const isPlayer1 = game.players.player1.address === address;
+    const self = isPlayer1 
+      ? game.players.player1 
+      : game.players.player2;
 
-    io.to(game.id).emit("turnUpdate", {
-      currentTurn: game.turn,
-      playerTurn: game.currentTurn === address,
-    });
-    io.to(game.id).emit("healthUpdate", {
-      playerHealth: self.health,
-      opponentHealth: game.players[getOpponent(game, address)].health,
-    });
+    const healAmount = Math.min(10, 100 - self.health);
+    self.health = Math.min(100, self.health + healAmount);
+    
+    // Transition turn
+    transitionTurn(game);
+  });
+
+  // Restart battle
+  socket.on("restartBattle", ({ address }) => {
+    const existingGame = findGameByAddress(address);
+    if (existingGame) {
+      delete games[existingGame.id];
+    }
+
+    // Reset player readiness
+    if (players[address]) {
+      players[address].ready = true;
+    }
+
+    checkForBattle();
   });
 
   // Handle player disconnect
   socket.on("disconnect", () => {
-    console.log("User disconnected", socket.id);
-    delete players[socket.id];
-    endBattle(socket.id);
+    const playerAddress = Object.keys(players).find(
+      key => players[key].socketId === socket.id
+    );
+
+    if (playerAddress) {
+      console.log("User disconnected", playerAddress);
+      delete players[playerAddress];
+      endBattle(playerAddress);
+    }
   });
 });
 
 // Check for battle-ready players and start a game
 function checkForBattle() {
-  const readyPlayers = Object.entries(players).filter(
-    ([, player]) => player.ready
+  const readyPlayers = Object.values(players).filter(
+    (player) => player.ready
   );
 
   if (readyPlayers.length >= 2) {
     const [player1, player2] = readyPlayers.slice(0, 2);
-    const gameID = `${player1[0]}_${player2[0]}`;
+    const gameID = `${player1.address}_${player2.address}`;
 
+    // Mark players as not ready
+    player1.ready = false;
+    player2.ready = false;
+
+    // Create game with structured players
     games[gameID] = {
       id: gameID,
       players: {
-        [player1[0]]: { health: 100 },
-        [player2[0]]: { health: 100 },
+        player1: { address: player1.address, health: 100 },
+        player2: { address: player2.address, health: 100 }
       },
-      currentTurn: player1[0],
+      currentTurn: player1.address,
       turn: 1,
     };
 
-    // Notify players of battle start
-    io.to(player1[0]).to(player2[0]).emit("battleStart");
+    // Join game room
+    io.in(player1.address).socketsJoin(gameID);
+    io.in(player2.address).socketsJoin(gameID);
 
-    io.to(player1[0]).emit("turnUpdate", {
-      currentTurn: 1,
-      playerTurn: true,
+    // Notify players of battle start
+    io.to(gameID).emit("battleStart", {
+      player1Address: player1.address,
+      player2Address: player2.address
     });
-    io.to(player2[0]).emit("turnUpdate", {
+
+    // Send initial turn updates
+    io.to(player1.address).emit("turnUpdate", {
       currentTurn: 1,
-      playerTurn: false,
+      playerTurn: player1.address,
+      playerHealth: 100,
+      opponentHealth: 100
+    });
+    io.to(player2.address).emit("turnUpdate", {
+      currentTurn: 1,
+      playerTurn: player1.address,
+      playerHealth: 100,
+      opponentHealth: 100
     });
   }
+}
+
+// Centralized function to handle turn transitions
+function transitionTurn(game) {
+  // Switch current turn between players
+  game.currentTurn = game.currentTurn === game.players.player1.address 
+    ? game.players.player2.address 
+    : game.players.player1.address;
+  game.turn++;
+  
+  // Emit turn updates to all players in the game
+  io.to(game.id).emit("turnUpdate", {
+    currentTurn: game.turn,
+    playerTurn: game.currentTurn,
+    playerHealth: game.players.player1.health,
+    opponentHealth: game.players.player2.health
+  });
 }
 
 // Find game by player address
 function findGameByAddress(address) {
-  return Object.values(games).find((game) =>
-    Object.keys(game.players).includes(address)
+  return Object.values(games).find((game) => 
+    game.players.player1.address === address || 
+    game.players.player2.address === address
   );
 }
 
-// Get the opponent's address
-function getOpponent(game, address) {
-  return Object.keys(game.players).find((key) => key !== address);
-}
-
-// Check the status of the battle and emit updates
-function checkBattleStatus(game) {
-  const [player1, player2] = Object.keys(game.players);
-  const player1Health = game.players[player1].health;
-  const player2Health = game.players[player2].health;
-
-  if (player1Health <= 0 || player2Health <= 0) {
-    const winner = player1Health > player2Health ? player1 : player2;
-
-    io.to(game.id).emit("battleEnd", { winner });
-    delete games[game.id];
-  }
-}
-
 // End a battle if a player disconnects
-function endBattle(socketID) {
-  const game = Object.values(games).find((game) =>
-    Object.keys(game.players).includes(socketID)
+function endBattle(address) {
+  const game = Object.values(games).find((game) => 
+    game.players.player1.address === address || 
+    game.players.player2.address === address
   );
 
   if (game) {
@@ -151,4 +220,4 @@ function endBattle(socketID) {
   }
 }
 
-export { app, io, server};
+export { app, io, server };

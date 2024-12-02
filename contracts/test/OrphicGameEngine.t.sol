@@ -55,25 +55,14 @@ contract OrphicGameEngineTest is Test {
         vm.startPrank(user1);
 
         engine.mintMonster(
-            "https://example.com/monster1.json",
-            "Fire Dragon",
-            100,
-            50,
-            200,
-            OrphicGameEngine.rarity.epic
+            "https://example.com/monster1.json", "Fire Dragon", 100, 50, 200, OrphicGameEngine.rarity.epic
         );
 
         engine.mintMonster(
-            "https://example.com/monster2.json",
-            "Water Serpent",
-            80,
-            60,
-            180,
-            OrphicGameEngine.rarity.rare
+            "https://example.com/monster2.json", "Water Serpent", 80, 60, 180, OrphicGameEngine.rarity.rare
         );
 
-        OrphicGameEngine.MonsterAttributes[] memory monsters = engine
-            .getAllMonstersFromAUser(user1);
+        OrphicGameEngine.MonsterAttributes[] memory monsters = engine.getAllMonstersFromAUser(user1);
 
         assertEq(monsters.length, 2);
 
@@ -93,21 +82,11 @@ contract OrphicGameEngineTest is Test {
         vm.startPrank(user1);
 
         engine.mintMonster(
-            "https://example.com/monster1.json",
-            "Fire Dragon",
-            100,
-            50,
-            200,
-            OrphicGameEngine.rarity.epic
+            "https://example.com/monster1.json", "Fire Dragon", 100, 50, 200, OrphicGameEngine.rarity.epic
         );
 
         engine.mintMonster(
-            "https://example.com/monster2.json",
-            "Water Serpent",
-            80,
-            60,
-            180,
-            OrphicGameEngine.rarity.rare
+            "https://example.com/monster2.json", "Water Serpent", 80, 60, 180, OrphicGameEngine.rarity.rare
         );
 
         assertEq(engine.getUserTokenCount(user1), 2);
@@ -119,12 +98,7 @@ contract OrphicGameEngineTest is Test {
         vm.startPrank(user2);
 
         engine.mintMonster(
-            "https://example.com/monster1.json",
-            "Ice Phoenix",
-            110,
-            70,
-            210,
-            OrphicGameEngine.rarity.legendary
+            "https://example.com/monster1.json", "Ice Phoenix", 110, 70, 210, OrphicGameEngine.rarity.legendary
         );
 
         uint256[] memory tokens = engine.getUserTokens(user2);
@@ -139,14 +113,7 @@ contract OrphicGameEngineTest is Test {
         vm.startPrank(user1);
 
         string memory tokenURI = "https://example.com/monster1.json";
-        engine.mintMonster(
-            tokenURI,
-            "Fire Dragon",
-            100,
-            50,
-            200,
-            OrphicGameEngine.rarity.epic
-        );
+        engine.mintMonster(tokenURI, "Fire Dragon", 100, 50, 200, OrphicGameEngine.rarity.epic);
 
         uint256 tokenId = 0;
         assertEq(engine.tokenURI(tokenId), tokenURI);

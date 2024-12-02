@@ -39,11 +39,11 @@ const Page = () => {
         if (data === 1) {
           setFaction("Dragons");
           if (Number(data2) == 0) router.push("/first-mon?faction=dragon");
-          else router.push("/battle");
+          else router.push("/play");
         } else if (data === 2) {
           setFaction("Tigers");
           if (Number(data2) == 0) router.push("/first-mon?faction=tiger");
-          else router.push("/battle");
+          else router.push("/play");
         }
       }
     }
@@ -136,7 +136,7 @@ const FactionChoice = ({
         {
           onSuccess: () => {
             console.log("Faction selected successfully");
-            router.push("/battle");
+            router.push("/play");
           },
         }
       );
