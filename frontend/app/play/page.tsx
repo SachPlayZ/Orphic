@@ -26,7 +26,6 @@ import { useAccount } from "wagmi";
 export default function Page() {
   const router = useRouter();
   const [xp, setXp] = useState(75);
-  setXp(75);
   const { address } = useAccount();
 
   const handleBattle = () => {
