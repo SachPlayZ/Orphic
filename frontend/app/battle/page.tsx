@@ -1,273 +1,334 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import io, { Socket } from "socket.io-client";
-import { useAccount } from "wagmi";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useWriteContract } from "wagmi";
+import { Loader2, Zap, Shield, Heart } from 'lucide-react';
+import Image from "next/image";
+import BattleArena from "./BattleArena";
+import MoveSelection from "./MoveSelection";
+import BattleLog from "./BattleLog";
+import BattleStats from "./BattleStats";
+import { Monster, Move, BattleState, Rarity } from "./types";
+import { generateRandomMonster1, generateRandomMonster2, selectRandomMove, generateMonsterNFT } from "./utils";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from 'canvas-confetti';
+import abi from "@/abi";
 
-// Interfaces for type safety
-interface TurnUpdatePayload {
-  currentTurn: number;
-  playerTurn: boolean;
-  playerHealth: number;
-  opponentHealth: number;
-}
+const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 
-interface BattleEndPayload {
-  winner: string;
-}
-
-let socket: Socket;
-const CLIENT_URL =
-  process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:5000";
-
-const BattlePage = () => {
+export default function BattlePage() {
   const router = useRouter();
-  const [socketConnected, setSocketConnected] = useState(false);
-  console.log(socketConnected);
-
+  const { writeContractAsync } = useWriteContract();
+  const [battleState, setBattleState] = useState<BattleState>({
+    playerMonster: null,
+    opponentMonster: null,
+    playerHealth: 100,
+    opponentHealth: 100,
+    currentTurn: "player",
+    battleLog: [],
+    roundCount: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
-  const { address } = useAccount();
-
-  const [attacking, setAttacking] = useState(false);
-  const [defending, setDefending] = useState(false);
-  console.log(attacking, defending);
-  const [turn, setTurn] = useState(0);
-  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
-
-  const [playerOneHealth, setPlayerOneHealth] = useState(100);
-  const [playerTwoHealth, setPlayerTwoHealth] = useState(100);
-  const [winner, setWinner] = useState<string | null>(null);
-
-  const [battleStatus, setBattleStatus] = useState<
-    "waiting" | "active" | "completed"
-  >("waiting");
-  const [playerHealth, setPlayerHealth] = useState(100);
-  const [opponentHealth, setOpponentHealth] = useState(100);
-  console.log(playerHealth, opponentHealth);
-  setPlayerHealth(100);
+  const [showVictoryScreen, setShowVictoryScreen] = useState(false);
+  const [isMinting, setIsMinting] = useState(false);
+  const [mintedMonster, setMintedMonster] = useState<Monster | null>(null);
+  const [mintedImage, setMintedImage] = useState<string | null>(null);
 
   useEffect(() => {
-    socket = io(CLIENT_URL, {
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    const playerMonster = generateRandomMonster1();
+    const opponentMonster = generateRandomMonster2();
+    
+    setBattleState(prev => ({
+      ...prev,
+      playerMonster,
+      opponentMonster,
+      playerHealth: playerMonster.hp,
+      opponentHealth: opponentMonster.hp,
+    }));
+    
+    setIsLoading(false);
+  }, []);
 
-    socket.on("connect_error", (error) => {
-      console.error("Connection error:", error);
-      setSocketConnected(false);
-      setIsLoading(false);
-    });
+  const handleMoveSelection = (move: Move) => {
+    if (battleState.currentTurn !== "player") return;
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-      setSocketConnected(false);
-      setIsLoading(false);
-    });
+    const playerDamage = calculateDamage(battleState.playerMonster!, move, battleState.opponentMonster!);
+    const newOpponentHealth = Math.max(0, battleState.opponentHealth - playerDamage);
 
-    socket.emit("setup", { address });
-
-    socket.on("connected", () => {
-      setSocketConnected(true);
-      setIsLoading(false);
-      console.log("Socket connected");
-    });
-
-    socket.on("turnUpdate", (data: TurnUpdatePayload) => {
-      setTurn(data.currentTurn);
-      setIsPlayerTurn(data.playerTurn);
-      setPlayerOneHealth(data.playerHealth);
-      setPlayerTwoHealth(data.opponentHealth);
-    });
-
-    socket.on("battleStart", () => {
-      setBattleStatus("active");
-      setPlayerOneHealth(100);
-      setPlayerTwoHealth(100);
-      setTurn(0);
-
-      socket.emit("readyForBattle", { address });
-    });
-
-    socket.on("battleEnd", (data: BattleEndPayload) => {
-      setBattleStatus("completed");
-      console.log(`Battle ended. Winner: ${data.winner}`);
-      setPlayerTwoHealth(0);
-      setWinner(data.winner);
-    });
-
-    socket.on("actionComplete", () => {
-      setAttacking(false);
-      setDefending(false);
-    });
-
-    return () => {
-      socket.disconnect();
+    const updatedBattleState = {
+      ...battleState,
+      opponentHealth: newOpponentHealth,
+      currentTurn: "opponent",
+      battleLog: [
+        ...battleState.battleLog,
+        `${battleState.playerMonster!.name} used ${move.name} and dealt ${playerDamage} damage!`,
+      ],
+      roundCount: battleState.roundCount + 1,
     };
-  }, [address]);
 
-  const handleAttack = () => {
-    if (!isPlayerTurn && !isPlayerTurn) return;
+    setBattleState(updatedBattleState);
 
-    socket?.emit("playerAttack", { address });
-    setAttacking(true);
+    setTimeout(() => {
+      const opponentMove = selectRandomMove(battleState.opponentMonster!.moves);
+      const opponentDamage = calculateDamage(battleState.opponentMonster!, opponentMove, battleState.playerMonster!);
+      const newPlayerHealth = Math.max(0, battleState.playerHealth - opponentDamage);
+
+      setBattleState(prev => ({
+        ...prev,
+        playerHealth: newPlayerHealth,
+        currentTurn: "player",
+        battleLog: [
+          ...prev.battleLog,
+          `${prev.opponentMonster!.name} used ${opponentMove.name} and dealt ${opponentDamage} damage!`,
+        ],
+      }));
+
+      if (newPlayerHealth === 0 || newOpponentHealth === 0) {
+        const winner = newPlayerHealth === 0 ? "Opponent" : "Player";
+        setBattleState(prev => ({
+          ...prev,
+          battleLog: [
+            ...prev.battleLog,
+            `Battle ended! ${winner} wins!`,
+          ],
+        }));
+        setShowVictoryScreen(true);
+        if (winner === "Player") {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+          handleVictory();
+        }
+      }
+    }, 1500);
   };
 
-  const handleDefend = () => {
-    if (!isPlayerTurn && !isPlayerTurn) return;
-
-    socket.emit("playerDefend", { address });
-    setDefending(true);
+  const calculateDamage = (attacker: Monster, move: Move, defender: Monster) => {
+    const baseDamage = move.power;
+    const attackStat = attacker.attack;
+    const defenseStat = defender.defense;
+    const randomFactor = Math.random() * (1.1 - 0.9) + 0.9;
+    return Math.floor((baseDamage * (attackStat / defenseStat) * randomFactor));
   };
 
-  const handleRestartBattle = () => {
-    if (battleStatus === "completed") {
-      socket.emit("restartBattle", { address });
-      setBattleStatus("waiting");
-      setOpponentHealth(0);
+  const handleVictory = async () => {
+    setIsMinting(true);
+    try {
+      const newMonster = await generateMonsterNFT();
+      const mintedNFT = await mintMonsterNFT(newMonster);
+      setMintedMonster(mintedNFT);
+      setMintedImage(newMonster.tokenURI);
+    } catch (error) {
+      console.error("Error minting victory NFT:", error);
+    } finally {
+      setIsMinting(false);
     }
   };
 
-  const handleReturnToMainmenu = () => {
-    router.push("/play");
-  };
+  const mintMonsterNFT = async (monster: Monster) => {
+    try {
+      const response = await fetch(monster.tokenURI);
+      const blob = await response.blob();
+      const file = new File([blob], `${monster.name}.png`, { type: blob.type });
+      const imgData = new FormData();
+      imgData.append("file", file);
 
-  console.log(isPlayerTurn);
+      const uploadResponse = await fetch("/api/files", {
+        method: "POST",
+        body: imgData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload the file");
+      }
+
+      const ipfs = await uploadResponse.json();
+
+      let rarityEnum;
+      switch (monster.rarity) {
+        case "common": rarityEnum = 0; break;
+        case "rare": rarityEnum = 1; break;
+        case "epic": rarityEnum = 2; break;
+        case "legendary": rarityEnum = 3; break;
+        default: rarityEnum = 0;
+      }
+
+      await writeContractAsync({
+        address: contractAddress,
+        abi: abi,
+        functionName: "mintMonster",
+        args: [
+          ipfs,
+          monster.name,
+          monster.attack,
+          monster.defense,
+          monster.hp,
+          rarityEnum,
+        ],
+      });
+
+      return monster;
+    } catch (error) {
+      console.error("Error in mintMonsterNFT:", error);
+      throw error;
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        Connecting to battle arena...
+      <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-black">
+        <Loader2 className="w-16 h-16 animate-spin text-purple-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto p-4">
-        <h1 className="text-4xl font-bold text-center mb-8">Battle Arena</h1>
-
-        <div className="text-center mb-4">
-          <p className="text-lg">
-            Battle Status: <span className="font-bold">{battleStatus}</span>
-          </p>
-          <p>Current Turn: {turn}</p>
+    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-black text-white p-4 overflow-hidden">
+      <div className="container mx-auto px-4 py-8">
+        <motion.h1 
+          className="text-4xl font-bold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600"
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          Monster Battle Arena
+        </motion.h1>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <BattleArena
+              playerMonster={battleState.playerMonster!}
+              opponentMonster={battleState.opponentMonster!}
+              playerHealth={battleState.playerHealth}
+              opponentHealth={battleState.opponentHealth}
+              currentTurn={battleState.currentTurn}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <MoveSelection
+              moves={battleState.playerMonster!.moves}
+              onMoveSelect={handleMoveSelection}
+              disabled={battleState.currentTurn !== "player"}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
+            <BattleLog log={battleState.battleLog} />
+          </motion.div>
         </div>
-
-        <div className="flex justify-between items-center mb-8 text-white">
-          <Card className="w-1/3 bg-gray-800 border-2 border-blue-500">
-            <CardHeader>
-              <CardTitle className="text-center">Player1</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative h-48 mb-4">
-                <Image
-                  src="/placeholder.svg?height=200&width=200"
-                  alt="Player1"
-                  layout="fill"
-                  objectFit="contain"
-                />
-              </div>
-              <div className="text-center">
-                <p>Health: {playerOneHealth}/100</p>
-                <div className="w-full bg-red-900 rounded-full h-4 mt-2">
-                  <div
-                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
-                    style={{ width: `${playerOneHealth}%` }}
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="text-4xl font-bold">VS</div>
-
-          <Card className="w-1/3 bg-gray-800 border-2 border-red-500">
-            <CardHeader>
-              <CardTitle className="text-center">Player2</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative h-48 mb-4">
-                <Image
-                  src="/placeholder.svg?height=200&width=200"
-                  alt="Player2"
-                  layout="fill"
-                  objectFit="contain"
-                />
-              </div>
-              <div className="text-center">
-                <p>Health: {playerTwoHealth}/100</p>
-                <div className="w-full bg-red-900 rounded-full h-4 mt-2">
-                  <div
-                    className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-in-out"
-                    style={{ width: `${playerTwoHealth}%` }}
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {battleStatus === "active" ? (
-          <div className="flex justify-center space-x-4">
-            <Button
-              onClick={handleAttack}
-              disabled={false}
-              className={`${
-                isPlayerTurn || isPlayerTurn
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-gray-600 cursor-not-allowed"
-              } transition-all duration-300`}
-            >
-              Attack
-            </Button>
-            <Button
-              onClick={handleDefend}
-              disabled={false}
-              className={`${
-                isPlayerTurn || isPlayerTurn
-                  ? "bg-blue-500 hover:bg-blue-600"
-                  : "bg-gray-600 cursor-not-allowed"
-              } transition-all duration-300`}
-            >
-              Defend
-            </Button>
-          </div>
-        ) : battleStatus === "completed" ? (
-          <div className="flex flex-col items-center justify-center gap-y-4">
-            <Button
-              onClick={handleRestartBattle}
-              className="bg-green-500 hover:bg-green-600 transition-all duration-300"
-            >
-              Restart Battle
-            </Button>
-            <Button
-              onClick={handleReturnToMainmenu}
-              className="bg-blue-500 hover:bg-blue-600 transition-all duration-300"
-            >
-              Return to Mainmenu
-            </Button>
-          </div>
-        ) : (
-          <div className="text-center text-xl">
-            Waiting for battle to start...
-          </div>
-        )}
-
-        {battleStatus === "completed" && (
-          <div className="text-center mt-4">
-            <p className="text-2xl font-bold">
-              {playerOneHealth > 0 && `Winner: ${winner}`}
-            </p>
-          </div>
-        )}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+          className="mt-8"
+        >
+          <BattleStats
+            playerMonster={battleState.playerMonster!}
+            opponentMonster={battleState.opponentMonster!}
+            roundCount={battleState.roundCount}
+          />
+        </motion.div>
       </div>
+      <AnimatePresence>
+        {showVictoryScreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 p-1 rounded-lg"
+            >
+              <div className="bg-gray-900 rounded-lg p-8 max-w-md text-center">
+                <h2 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                  {battleState.playerHealth > 0 ? "Victory!" : "Defeat!"}
+                </h2>
+                <p className="mb-6">
+                  {battleState.playerHealth > 0
+                    ? "Congratulations! Your monster emerged victorious!"
+                    : "Your monster fought bravely but was defeated. Better luck next time!"}
+                </p>
+                {mintedMonster && mintedImage && (
+                  <div className="mb-6">
+                    <p className="text-lg font-semibold mb-2">You've won a new monster!</p>
+                    <div className="w-48 h-48 mx-auto mb-4 relative">
+                      <Image
+                        src={mintedImage}
+                        alt={mintedMonster.name}
+                        layout="fill"
+                        objectFit="contain"
+                        className="rounded-lg"
+                      />
+                    </div>
+                    <p className="text-xl font-bold">{mintedMonster.name}</p>
+                    <p className={`text-lg ${getRarityColor(mintedMonster.rarity)}`}>
+                      {mintedMonster.rarity.charAt(0).toUpperCase() + mintedMonster.rarity.slice(1)}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 mt-4">
+                      <div className="bg-red-800 bg-opacity-50 p-2 rounded-lg">
+                        <Zap className="w-6 h-6 mx-auto mb-1" />
+                        <p className="font-semibold">Attack</p>
+                        <p className="text-xl">{mintedMonster.attack}</p>
+                      </div>
+                      <div className="bg-blue-800 bg-opacity-50 p-2 rounded-lg">
+                        <Shield className="w-6 h-6 mx-auto mb-1" />
+                        <p className="font-semibold">Defense</p>
+                        <p className="text-xl">{mintedMonster.defense}</p>
+                      </div>
+                      <div className="bg-green-800 bg-opacity-50 p-2 rounded-lg">
+                        <Heart className="w-6 h-6 mx-auto mb-1" />
+                        <p className="font-semibold">HP</p>
+                        <p className="text-xl">{mintedMonster.hp}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {isMinting && (
+                  <div className="mb-4">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                    <p>Minting your victory NFT...</p>
+                  </div>
+                )}
+                <button
+                  onClick={() => router.push("/battle")}
+                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-semibold 
+                             transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+                >
+                  New Battle
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-};
+}
 
-export default BattlePage;
+function getRarityColor(rarity: Rarity): string {
+  switch (rarity) {
+    case "common": return "text-gray-400";
+    case "rare": return "text-blue-400";
+    case "epic": return "text-purple-400";
+    case "legendary": return "text-yellow-400";
+    default: return "text-white";
+  }
+}
+
