@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+// import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,8 @@ import { useAccount } from "wagmi";
 
 export default function Page() {
   const router = useRouter();
-  const [xp, setXp] = useState(75);
+  // const [xp, setXp] = useState(75);
+  const xp = 75;
   const { address } = useAccount();
 
   const handleBattle = () => {

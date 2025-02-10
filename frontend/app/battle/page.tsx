@@ -27,7 +27,6 @@ export default function BattlePage() {
     opponentHealth: 100,
     currentTurn: "player",
     battleLog: [],
-    roundCount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showVictoryScreen, setShowVictoryScreen] = useState(false);
@@ -56,15 +55,14 @@ export default function BattlePage() {
     const playerDamage = calculateDamage(battleState.playerMonster!, move, battleState.opponentMonster!);
     const newOpponentHealth = Math.max(0, battleState.opponentHealth - playerDamage);
 
-    const updatedBattleState = {
+    const updatedBattleState: BattleState = {
       ...battleState,
       opponentHealth: newOpponentHealth,
       currentTurn: "opponent",
       battleLog: [
         ...battleState.battleLog,
         `${battleState.playerMonster!.name} used ${move.name} and dealt ${playerDamage} damage!`,
-      ],
-      roundCount: battleState.roundCount + 1,
+      ]
     };
 
     setBattleState(updatedBattleState);
@@ -238,7 +236,6 @@ export default function BattlePage() {
           <BattleStats
             playerMonster={battleState.playerMonster!}
             opponentMonster={battleState.opponentMonster!}
-            roundCount={battleState.roundCount}
           />
         </motion.div>
       </div>
@@ -267,7 +264,7 @@ export default function BattlePage() {
                 </p>
                 {mintedMonster && mintedImage && (
                   <div className="mb-6">
-                    <p className="text-lg font-semibold mb-2">You've won a new monster!</p>
+                    <p className="text-lg font-semibold mb-2">You&apos;ve won a new monster!</p>
                     <div className="w-48 h-48 mx-auto mb-4 relative">
                       <Image
                         src={mintedImage}

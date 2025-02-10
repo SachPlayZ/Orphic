@@ -4,10 +4,13 @@ import { motion } from "framer-motion";
 interface BattleStatsProps {
   playerMonster: Monster;
   opponentMonster: Monster;
-  roundCount: number;
+  roundCount?: number;
 }
 
 export default function BattleStats({ playerMonster, opponentMonster, roundCount }: BattleStatsProps) {
+  if (!roundCount) {
+    roundCount = 1;
+  }
   return (
     <div className="bg-gray-800 rounded-lg p-4 shadow-lg">
       <h2 className="text-2xl font-bold mb-4 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">

@@ -35,7 +35,7 @@ export function generateRandomMonster1(): Monster {
 
   const monster: Monster = {
     name: monsterNames[Math.floor(Math.random() * monsterNames.length)],
-    // tokenURI: `/dragu.png`,
+    tokenURI: "", // placeholder, will be set later
     rarity,
     attack: Math.floor(Math.floor(Math.random() * 50 + 50) * statMultiplier),
     defense: Math.floor(Math.floor(Math.random() * 50 + 50) * statMultiplier),
@@ -55,7 +55,7 @@ export function generateRandomMonster2(): Monster {
 
   const monster: Monster = {
     name: monsterNames[Math.floor(Math.random() * monsterNames.length)],
-    // tokenURI: `/dragu.png`,
+    tokenURI: "", // placeholder, will be set later
     rarity,
     attack: Math.floor(Math.floor(Math.random() * 50 + 50) * statMultiplier),
     defense: Math.floor(Math.floor(Math.random() * 50 + 50) * statMultiplier),
