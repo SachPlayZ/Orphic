@@ -17,12 +17,12 @@ export default function BattleStats({ playerMonster, opponentMonster, roundCount
         Battle Stats
       </h2>
       <div className="grid grid-cols-3 gap-4">
-        <StatCard title="Round" value={roundCount} />
-        <StatCard title="Player Attack" value={playerMonster.attack} />
-        <StatCard title="Opponent Attack" value={opponentMonster.attack} />
-        <StatCard title="Player Defense" value={playerMonster.defense} />
-        <StatCard title="Opponent Defense" value={opponentMonster.defense} />
-        <StatCard title="Player Rarity" value={playerMonster.rarity} />
+        <StatCard title="Round" value={Number(roundCount)} />
+        <StatCard title="Player Attack" value={Number(playerMonster.attack)} />
+        <StatCard title="Opponent Attack" value={Number(opponentMonster.attack)} />
+        <StatCard title="Player Defense" value={Number(playerMonster.defense)} />
+        <StatCard title="Opponent Defense" value={Number(opponentMonster.defense)} />
+        <StatCard title="Player Rarity" value={playerMonster.rarity.charAt(0).toUpperCase() + playerMonster.rarity.slice(1)} />
       </div>
     </div>
   );

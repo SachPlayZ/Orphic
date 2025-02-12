@@ -89,7 +89,7 @@ interface MonsterDisplayProps {
 }
 
 function MonsterDisplay({ monster, health, isOpponent = false }: MonsterDisplayProps) {
-  const healthPercentage = (health / monster.hp) * 100;
+  const healthPercentage = (Number(health) / Number(monster.hp)) * 100;
   const healthBarColor = healthPercentage > 50 ? "bg-green-500" : healthPercentage > 25 ? "bg-yellow-500" : "bg-red-500";
 
   return (
@@ -104,7 +104,7 @@ function MonsterDisplay({ monster, health, isOpponent = false }: MonsterDisplayP
             transition={{ duration: 0.5 }}
           ></motion.div>
         </div>
-        <p className="text-sm">{health}/{monster.hp} HP</p>
+        <p className="text-sm">{Number(health)}/{Number(monster.hp)} HP</p>
       </div>
       <Image
         src={monster.tokenURI}

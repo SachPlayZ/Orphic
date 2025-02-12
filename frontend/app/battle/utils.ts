@@ -28,25 +28,25 @@ const moveList: Move[] = [
   { name: "Starfall", power: 65, color: "#FFDC00" },
   { name: "Void Blast", power: 70, color: "#85144b" }
 ];
+interface MonsterWithoutMoves {
+  name: string;
+  tokenURI: string;
+  rarity: Rarity;
+  attack: number;
+  defense: number;
+  hp: number;
+}
 
-export function generateRandomMonster1(): Monster {
-  const rarity = generateRarity();
-  const statMultiplier = getRarityMultiplier(rarity);
-
+export function generateRandomMonster1(monst: MonsterWithoutMoves): Monster {
   const monster: Monster = {
-    name: monsterNames[Math.floor(Math.random() * monsterNames.length)],
-    tokenURI: "", // placeholder, will be set later
-    rarity,
-    attack: Math.floor(Math.floor(Math.random() * 50 + 50) * statMultiplier),
-    defense: Math.floor(Math.floor(Math.random() * 50 + 50) * statMultiplier),
-    hp: Math.floor(Math.floor(Math.random() * 100 + 100) * statMultiplier),
+    name: monst.name,
+    tokenURI: monst.tokenURI, // placeholder, will be set later
+    rarity: monst.rarity,
+    attack: monst.attack,
+    defense: monst.defense,
+    hp: monst.hp,
     moves: generateMoves(),
   };
-  const dragonImages = ["/dragu.png", "/dragu2.png", "/dragu3.png"];
-  const tigerImages = ["/tigru.png", "/tigru2.png", "/tigru3.png"];
-  monster.tokenURI = monster.name.includes("Dragon")
-    ? dragonImages[Math.floor(Math.random() * dragonImages.length)]
-    : tigerImages[Math.floor(Math.random() * tigerImages.length)];
   return monster;
 }
 export function generateRandomMonster2(): Monster {
