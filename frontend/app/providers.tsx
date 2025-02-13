@@ -30,7 +30,7 @@ export function Providers({ children, initialState }: Props) {
             fontStack: "system",
             overlayBlur: "small",
           })}
-          initialChain={84532}
+          initialChain={43113}
         >
           {children}
         </RainbowKitProvider>

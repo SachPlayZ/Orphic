@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.7.0 <0.9.0;
 
-import "../src/StdCheats.sol";
-import "../src/Test.sol";
-import "../src/StdJson.sol";
+import {StdCheats} from "../src/StdCheats.sol";
+import {Test} from "../src/Test.sol";
+import {stdJson} from "../src/StdJson.sol";
+import {stdToml} from "../src/StdToml.sol";
+import {IERC20} from "../src/interfaces/IERC20.sol";
 
 contract StdCheatsTest is Test {
     Bar test;
@@ -203,7 +205,7 @@ contract StdCheatsTest is Test {
         deployCode(what);
     }
 
-    function test_DeployCodeFail() public {
+    function test_RevertIf_DeployCodeFail() public {
         vm.expectRevert(bytes("StdCheats deployCode(string): Deployment failed."));
         this.deployCodeHelper("StdCheats.t.sol:RevertingContract");
     }
@@ -233,14 +235,14 @@ contract StdCheatsTest is Test {
         assertEq(privateKey, 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
     }
 
-    function test_BytesToUint() public {
+    function test_BytesToUint() public pure {
         assertEq(3, bytesToUint_test(hex"03"));
         assertEq(2, bytesToUint_test(hex"02"));
         assertEq(255, bytesToUint_test(hex"ff"));
         assertEq(29625, bytesToUint_test(hex"73b9"));
     }
 
-    function test_ParseJsonTxDetail() public {
+    function test_ParseJsonTxDetail() public view {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/test/fixtures/broadcast.log.json");
         string memory json = vm.readFile(path);
@@ -274,7 +276,7 @@ contract StdCheatsTest is Test {
         transactions;
     }
 
-    function test_ReadReceipt() public {
+    function test_ReadReceipt() public view {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/test/fixtures/broadcast.log.json");
         uint256 index = 5;
@@ -305,9 +307,6 @@ contract StdCheatsTest is Test {
         addInLoopNoGasNoGas();
         uint256 gas_used_double = gas_start_double - gasleft();
 
-        emit log_named_uint("Normal gas", gas_used_normal);
-        emit log_named_uint("Single modifier gas", gas_used_single);
-        emit log_named_uint("Double modifier  gas", gas_used_double);
         assertTrue(gas_used_double + gas_used_single < gas_used_normal);
     }
 
@@ -401,14 +400,14 @@ contract StdCheatsTest is Test {
     }
 
     function testFuzz_AssumeNotPrecompile(address addr) external {
-        assumeNotPrecompile(addr, getChain("optimism_goerli").chainId);
+        assumeNotPrecompile(addr, getChain("optimism_sepolia").chainId);
         assertTrue(
             addr < address(1) || (addr > address(9) && addr < address(0x4200000000000000000000000000000000000000))
                 || addr > address(0x4200000000000000000000000000000000000800)
         );
     }
 
-    function testFuzz_AssumeNotForgeAddress(address addr) external {
+    function testFuzz_AssumeNotForgeAddress(address addr) external pure {
         assumeNotForgeAddress(addr);
         assertTrue(
             addr != address(vm) && addr != 0x000000000000000000636F6e736F6c652e6c6f67
@@ -416,7 +415,7 @@ contract StdCheatsTest is Test {
         );
     }
 
-    function test_CannotDeployCodeTo() external {
+    function test_RevertIf_CannotDeployCodeTo() external {
         vm.expectRevert("StdCheats deployCodeTo(string,bytes,uint256,address): Failed to create runtime bytecode.");
         this._revertDeployCodeTo();
     }
@@ -471,7 +470,7 @@ contract StdCheatsForkTest is Test {
         vm.createSelectFork({urlOrAlias: "mainnet", blockNumber: 16_428_900});
     }
 
-    function test_CannotAssumeNoBlacklisted_EOA() external {
+    function test_RevertIf_CannotAssumeNoBlacklisted_EOA() external {
         // We deploy a mock version so we can properly test the revert.
         StdCheatsMock stdCheatsMock = new StdCheatsMock();
         address eoa = vm.addr({privateKey: 1});
@@ -479,33 +478,42 @@ contract StdCheatsForkTest is Test {
         stdCheatsMock.exposed_assumeNotBlacklisted(eoa, address(0));
     }
 
-    function testFuzz_AssumeNotBlacklisted_TokenWithoutBlacklist(address addr) external {
+    function testFuzz_AssumeNotBlacklisted_TokenWithoutBlacklist(address addr) external view {
         assumeNotBlacklisted(SHIB, addr);
         assertTrue(true);
     }
 
-    function test_AssumeNoBlacklisted_USDC() external {
+    function test_RevertIf_AssumeNoBlacklisted_USDC() external {
         // We deploy a mock version so we can properly test the revert.
         StdCheatsMock stdCheatsMock = new StdCheatsMock();
         vm.expectRevert();
         stdCheatsMock.exposed_assumeNotBlacklisted(USDC, USDC_BLACKLISTED_USER);
     }
 
-    function testFuzz_AssumeNotBlacklisted_USDC(address addr) external {
+    function testFuzz_AssumeNotBlacklisted_USDC(address addr) external view {
         assumeNotBlacklisted(USDC, addr);
         assertFalse(USDCLike(USDC).isBlacklisted(addr));
     }
 
-    function test_AssumeNoBlacklisted_USDT() external {
+    function test_RevertIf_AssumeNoBlacklisted_USDT() external {
         // We deploy a mock version so we can properly test the revert.
         StdCheatsMock stdCheatsMock = new StdCheatsMock();
         vm.expectRevert();
         stdCheatsMock.exposed_assumeNotBlacklisted(USDT, USDT_BLACKLISTED_USER);
     }
 
-    function testFuzz_AssumeNotBlacklisted_USDT(address addr) external {
+    function testFuzz_AssumeNotBlacklisted_USDT(address addr) external view {
         assumeNotBlacklisted(USDT, addr);
         assertFalse(USDTLike(USDT).isBlackListed(addr));
+    }
+
+    function test_dealUSDC() external {
+        // roll fork to the point when USDC contract updated to store balance in packed slots
+        vm.rollFork(19279215);
+
+        uint256 balance = 100e6;
+        deal(USDC, address(this), balance);
+        assertEq(IERC20(USDC).balanceOf(address(this)), balance);
     }
 }
 

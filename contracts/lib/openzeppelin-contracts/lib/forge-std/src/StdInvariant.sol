@@ -9,6 +9,11 @@ abstract contract StdInvariant {
         bytes4[] selectors;
     }
 
+    struct FuzzArtifactSelector {
+        string artifact;
+        bytes4[] selectors;
+    }
+
     struct FuzzInterface {
         address addr;
         string[] artifacts;
@@ -22,7 +27,9 @@ abstract contract StdInvariant {
     string[] private _excludedArtifacts;
     string[] private _targetedArtifacts;
 
-    FuzzSelector[] private _targetedArtifactSelectors;
+    FuzzArtifactSelector[] private _targetedArtifactSelectors;
+
+    FuzzSelector[] private _excludedSelectors;
     FuzzSelector[] private _targetedSelectors;
 
     FuzzInterface[] private _targetedInterfaces;
@@ -32,6 +39,10 @@ abstract contract StdInvariant {
 
     function excludeContract(address newExcludedContract_) internal {
         _excludedContracts.push(newExcludedContract_);
+    }
+
+    function excludeSelector(FuzzSelector memory newExcludedSelector_) internal {
+        _excludedSelectors.push(newExcludedSelector_);
     }
 
     function excludeSender(address newExcludedSender_) internal {
@@ -46,7 +57,7 @@ abstract contract StdInvariant {
         _targetedArtifacts.push(newTargetedArtifact_);
     }
 
-    function targetArtifactSelector(FuzzSelector memory newTargetedArtifactSelector_) internal {
+    function targetArtifactSelector(FuzzArtifactSelector memory newTargetedArtifactSelector_) internal {
         _targetedArtifactSelectors.push(newTargetedArtifactSelector_);
     }
 
@@ -77,6 +88,10 @@ abstract contract StdInvariant {
         excludedContracts_ = _excludedContracts;
     }
 
+    function excludeSelectors() public view returns (FuzzSelector[] memory excludedSelectors_) {
+        excludedSelectors_ = _excludedSelectors;
+    }
+
     function excludeSenders() public view returns (address[] memory excludedSenders_) {
         excludedSenders_ = _excludedSenders;
     }
@@ -85,7 +100,7 @@ abstract contract StdInvariant {
         targetedArtifacts_ = _targetedArtifacts;
     }
 
-    function targetArtifactSelectors() public view returns (FuzzSelector[] memory targetedArtifactSelectors_) {
+    function targetArtifactSelectors() public view returns (FuzzArtifactSelector[] memory targetedArtifactSelectors_) {
         targetedArtifactSelectors_ = _targetedArtifactSelectors;
     }
 

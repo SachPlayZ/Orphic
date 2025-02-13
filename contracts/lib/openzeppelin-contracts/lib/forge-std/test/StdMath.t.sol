@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import "../src/StdMath.sol";
-import "../src/Test.sol";
+import {stdMath} from "../src/StdMath.sol";
+import {Test, stdError} from "../src/Test.sol";
 
 contract StdMathMock is Test {
     function exposed_percentDelta(uint256 a, uint256 b) public pure returns (uint256) {
@@ -15,7 +15,7 @@ contract StdMathMock is Test {
 }
 
 contract StdMathTest is Test {
-    function test_GetAbs() external {
+    function test_GetAbs() external pure {
         assertEq(stdMath.abs(-50), 50);
         assertEq(stdMath.abs(50), 50);
         assertEq(stdMath.abs(-1337), 1337);
@@ -25,7 +25,7 @@ contract StdMathTest is Test {
         assertEq(stdMath.abs(type(int256).max), (type(uint256).max >> 1));
     }
 
-    function testFuzz_GetAbs(int256 a) external {
+    function testFuzz_GetAbs(int256 a) external pure {
         uint256 manualAbs = getAbs(a);
 
         uint256 abs = stdMath.abs(a);
@@ -33,7 +33,7 @@ contract StdMathTest is Test {
         assertEq(abs, manualAbs);
     }
 
-    function test_GetDelta_Uint() external {
+    function test_GetDelta_Uint() external pure {
         assertEq(stdMath.delta(uint256(0), uint256(0)), 0);
         assertEq(stdMath.delta(uint256(0), uint256(1337)), 1337);
         assertEq(stdMath.delta(uint256(0), type(uint64).max), type(uint64).max);
@@ -51,20 +51,15 @@ contract StdMathTest is Test {
         assertEq(stdMath.delta(5000, uint256(1250)), 3750);
     }
 
-    function testFuzz_GetDelta_Uint(uint256 a, uint256 b) external {
-        uint256 manualDelta;
-        if (a > b) {
-            manualDelta = a - b;
-        } else {
-            manualDelta = b - a;
-        }
+    function testFuzz_GetDelta_Uint(uint256 a, uint256 b) external pure {
+        uint256 manualDelta = a > b ? a - b : b - a;
 
         uint256 delta = stdMath.delta(a, b);
 
         assertEq(delta, manualDelta);
     }
 
-    function test_GetDelta_Int() external {
+    function test_GetDelta_Int() external pure {
         assertEq(stdMath.delta(int256(0), int256(0)), 0);
         assertEq(stdMath.delta(int256(0), int256(1337)), 1337);
         assertEq(stdMath.delta(int256(0), type(int64).max), type(uint64).max >> 1);
@@ -96,7 +91,7 @@ contract StdMathTest is Test {
         assertEq(stdMath.delta(5000, int256(1250)), 3750);
     }
 
-    function testFuzz_GetDelta_Int(int256 a, int256 b) external {
+    function testFuzz_GetDelta_Int(int256 a, int256 b) external pure {
         uint256 absA = getAbs(a);
         uint256 absB = getAbs(b);
         uint256 absDelta = absA > absB ? absA - absB : absB - absA;
@@ -134,14 +129,9 @@ contract StdMathTest is Test {
         stdMathMock.exposed_percentDelta(uint256(1), 0);
     }
 
-    function testFuzz_GetPercentDelta_Uint(uint192 a, uint192 b) external {
+    function testFuzz_GetPercentDelta_Uint(uint192 a, uint192 b) external pure {
         vm.assume(b != 0);
-        uint256 manualDelta;
-        if (a > b) {
-            manualDelta = a - b;
-        } else {
-            manualDelta = b - a;
-        }
+        uint256 manualDelta = a > b ? a - b : b - a;
 
         uint256 manualPercentDelta = manualDelta * 1e18 / b;
         uint256 percentDelta = stdMath.percentDelta(a, b);
@@ -177,7 +167,7 @@ contract StdMathTest is Test {
         stdMathMock.exposed_percentDelta(int256(1), 0);
     }
 
-    function testFuzz_GetPercentDelta_Int(int192 a, int192 b) external {
+    function testFuzz_GetPercentDelta_Int(int192 a, int192 b) external pure {
         vm.assume(b != 0);
         uint256 absA = getAbs(a);
         uint256 absB = getAbs(b);

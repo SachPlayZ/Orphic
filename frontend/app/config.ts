@@ -4,17 +4,17 @@ import {
     cookieStorage,
     createStorage
   } from 'wagmi'
-  import { baseSepolia } from 'wagmi/chains'
+  import { avalancheFuji } from 'wagmi/chains'
   
   export function getConfig() {
     return createConfig({
-      chains: [baseSepolia],
+      chains: [avalancheFuji],
       ssr: true,
       storage: createStorage({
         storage: cookieStorage,
       }),
       transports: {
-        [baseSepolia.id]: http(),
+        [avalancheFuji.id]: http(),
       },
     })
   }
