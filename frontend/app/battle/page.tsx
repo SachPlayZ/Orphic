@@ -44,6 +44,7 @@ export default function BattlePage() {
 
   useEffect(() => {
     if (data) {
+      console.log(JSON.stringify(data, (key, value) => (typeof value === 'bigint' ? value.toString() : value)))
       const monsterData = data as MonsterNFT[]
       setMonsters(monsterData)
       console.log(monsterData)
