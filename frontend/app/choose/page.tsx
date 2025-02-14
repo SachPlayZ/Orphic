@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 
-import abi from "@/abi";
+import {abi, contractAddress } from "@/abi";
 
-const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -21,18 +20,19 @@ const Page = () => {
   const { data, isLoading, refetch } = useReadContract({
     address: contractAddress,
     abi: abi,
-    functionName: "playerFaction",
+    functionName: "getPlayerFaction",
     args: [address],
   });
-  const { data: data2, isLoading: isLoading2 } = useReadContract({
+  const { data: dataUnrefactored, isLoading: isLoading2 } = useReadContract({
     address: contractAddress,
     abi: abi,
-    functionName: "getUserTokenCount",
+    functionName: "getUserMonsters",
     args: [address],
   });
 
   useEffect(() => {
     if (!isLoading && !isLoading2) {
+      const data2 = Array.isArray(dataUnrefactored) ? dataUnrefactored.length : 0;
       console.log("Data:", Number(data2));
       setGlobalLoading(false); // Stop loading when the contract data is fetched
       if (data) {
@@ -138,12 +138,14 @@ const FactionChoice = ({
   const handleSelectFaction = async () => {
     try {
       setIsLoading(true);
+      console.log("Faxon id")
+      console.log(factionId)
       await writeContractAsync(
         {
           address: contractAddress,
           abi: abi,
           functionName: "setPlayerFaction",
-          args: [address, factionId],
+          args: [factionId],
         },
         {
           onSuccess: () => {

@@ -175,3 +175,18 @@ export const MovesFunctions = {
         };
     },
 };
+
+export const getRandomMoves = (): { moveName: string; movePower: bigint }[] => {
+    const moveNames = Object.keys(MovesFunctions);
+    const selectedMoves: string[] = [];
+    while (selectedMoves.length < 4) {
+        const randomMove = moveNames[Math.floor(Math.random() * moveNames.length)];
+        if (!selectedMoves.includes(randomMove)) {
+            selectedMoves.push(randomMove);
+        }
+    }
+    return selectedMoves.map(moveName => ({
+        moveName,
+        movePower: BigInt(0),
+    }));
+};

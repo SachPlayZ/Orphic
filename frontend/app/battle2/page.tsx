@@ -2,18 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { useWriteContract, useAccount, useReadContract } from "wagmi"
-import abi from "@/abi"
+import { abi, contractAddress } from "@/abi"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { Loader2, Swords } from "lucide-react"
 
-const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463"
-
 type Move = {
-  attack: string
-  power: number
+  moveName: string
+  movePower: string
 }
 
 type Monster = {
@@ -21,20 +19,27 @@ type Monster = {
   attack: string
   defense: string
   hp: string
-  rarity: string
-  tokenURI: string
-  moveset: Move[]
+  moveCount: string
+  rarity: number
+  ipfsHash: string
+  isMonster: boolean
+  isDeleted: boolean
+}
+
+type MonsterWithMoves = {
+  monster: Monster
+  moves: Move[]
 }
 
 export default function MonsterBattlePage() {
   const { address } = useAccount()
-  const [monsters, setMonsters] = useState<Monster[]>([])
-  const [selectedMonster, setSelectedMonster] = useState<Monster | null>(null)
-  const [aiMonster, setAiMonster] = useState<Monster | null>(null)
+  const [monsters, setMonsters] = useState<MonsterWithMoves[]>([])
+  const [selectedMonster, setSelectedMonster] = useState<MonsterWithMoves | null>(null)
+  const [aiMonster, setAiMonster] = useState<MonsterWithMoves | null>(null)
   const [battleLog, setBattleLog] = useState<string[]>([])
   const [isBattling, setIsBattling] = useState(false)
   const [isMinting, setIsMinting] = useState(false)
-  const [mintedMonster, setMintedMonster] = useState<Monster | null>(null)
+  const [mintedMonster, setMintedMonster] = useState<MonsterWithMoves | null>(null)
   const [mintedImage, setMintedImage] = useState<string | null>(null)
 
   const { data: writeData, writeContractAsync } = useWriteContract()
@@ -48,12 +53,12 @@ export default function MonsterBattlePage() {
 
   useEffect(() => {
     if (data) {
-      const monsterData = data as Monster[]
+      const monsterData = data as MonsterWithMoves[]
       setMonsters(monsterData)
     }
   }, [data])
 
-  const generateAiMonster = async () => {
+  const generateAiMonster = async (): Promise<MonsterWithMoves> => {
     const rarity = generateRarity()
     const creatureType = Math.random() < 0.5 ? "dragon" : "tiger"
     const response = await fetch("/api/getArt", {
@@ -68,13 +73,18 @@ export default function MonsterBattlePage() {
     const imageUrl = URL.createObjectURL(blob)
 
     return {
-      name: `AI ${creatureType.charAt(0).toUpperCase() + creatureType.slice(1)}`,
-      attack: Math.floor(Math.random() * 50 + 50).toString(),
-      defense: Math.floor(Math.random() * 50 + 50).toString(),
-      hp: Math.floor(Math.random() * 100 + 100).toString(),
-      rarity,
-      tokenURI: imageUrl,
-      moveset: generateMoves(),
+      monster: {
+        name: `AI ${creatureType.charAt(0).toUpperCase() + creatureType.slice(1)}`,
+        attack: Math.floor(Math.random() * 50 + 50).toString(),
+        defense: Math.floor(Math.random() * 50 + 50).toString(),
+        hp: Math.floor(Math.random() * 100 + 100).toString(),
+        moveCount: "4",
+        rarity: rarity,
+        ipfsHash: "",
+        isMonster: true,
+        isDeleted: false,
+      },
+      moves: generateMoves(),
     }
   }
 
@@ -83,17 +93,17 @@ export default function MonsterBattlePage() {
     return Array(4)
       .fill(null)
       .map(() => ({
-        attack: moveNames[Math.floor(Math.random() * moveNames.length)],
-        power: Math.floor(Math.random() * 50 + 30),
+        moveName: moveNames[Math.floor(Math.random() * moveNames.length)],
+        movePower: Math.floor(Math.random() * 50 + 30).toString(),
       }))
   }
 
-  const generateRarity = () => {
+  const generateRarity = (): number => {
     const rand = Math.random()
-    if (rand < 0.6) return "common"
-    if (rand < 0.85) return "rare"
-    if (rand < 0.95) return "epic"
-    return "legendary"
+    if (rand < 0.6) return 0 // common
+    if (rand < 0.85) return 1 // rare
+    if (rand < 0.95) return 2 // epic
+    return 3 // legendary
   }
 
   const startBattle = async () => {
@@ -107,20 +117,22 @@ export default function MonsterBattlePage() {
     const aiMonster = await generateAiMonster()
     setAiMonster(aiMonster)
 
-    let playerHp = Number.parseInt(selectedMonster.hp)
-    let aiHp = Number.parseInt(aiMonster.hp)
+    let playerHp = Number.parseInt(selectedMonster.monster.hp)
+    let aiHp = Number.parseInt(aiMonster.monster.hp)
 
     while (playerHp > 0 && aiHp > 0) {
       // Player's turn
-      const playerMove = selectedMonster.moveset[Math.floor(Math.random() * selectedMonster.moveset.length)]
+      const playerMove = selectedMonster.moves[Math.floor(Math.random() * selectedMonster.moves.length)]
       const playerDamage = Math.max(
         0,
-        playerMove.power + Number.parseInt(selectedMonster.attack) - Number.parseInt(aiMonster.defense),
+        Number.parseInt(playerMove.movePower) +
+          Number.parseInt(selectedMonster.monster.attack) -
+          Number.parseInt(aiMonster.monster.defense),
       )
       aiHp -= playerDamage
       setBattleLog((prev) => [
         ...prev,
-        `${selectedMonster.name} used ${playerMove.attack} and dealt ${playerDamage} damage!`,
+        `${selectedMonster.monster.name} used ${playerMove.moveName} and dealt ${playerDamage} damage!`,
       ])
 
       if (aiHp <= 0) break
@@ -130,32 +142,34 @@ export default function MonsterBattlePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `You are an AI controlling a monster in a battle. Your monster (${aiMonster.name}) has ${aiHp} HP left. The opponent (${selectedMonster.name}) has ${playerHp} HP left. Choose a move from your moveset: ${JSON.stringify(aiMonster.moveset)}. Return your decision as a JSON object with 'move' and 'reason' properties.`,
+          prompt: `You are an AI controlling a monster in a battle. Your monster (${aiMonster.monster.name}) has ${aiHp} HP left. The opponent (${selectedMonster.monster.name}) has ${playerHp} HP left. Choose a move from your moveset: ${JSON.stringify(aiMonster.moves)}. Return your decision as a JSON object with 'move' and 'reason' properties.`,
         }),
       })
 
       if (!aiResponse.ok) throw new Error("Failed to get AI move")
 
       const aiDecision = await aiResponse.json()
-      const aiMove = aiMonster.moveset.find((move) => move.attack === aiDecision.move)
+      const aiMove = aiMonster.moves.find((move) => move.moveName === aiDecision.move)
       if (!aiMove) throw new Error("Invalid AI move")
 
       const aiDamage = Math.max(
         0,
-        aiMove.power + Number.parseInt(aiMonster.attack) - Number.parseInt(selectedMonster.defense),
+        Number.parseInt(aiMove.movePower) +
+          Number.parseInt(aiMonster.monster.attack) -
+          Number.parseInt(selectedMonster.monster.defense),
       )
       playerHp -= aiDamage
       setBattleLog((prev) => [
         ...prev,
-        `${aiMonster.name} used ${aiMove.attack} and dealt ${aiDamage} damage!`,
+        `${aiMonster.monster.name} used ${aiMove.moveName} and dealt ${aiDamage} damage!`,
         `AI's reasoning: ${aiDecision.reason}`,
       ])
     }
 
     if (playerHp <= 0) {
-      setBattleLog((prev) => [...prev, `${selectedMonster.name} fainted. You lost the battle!`])
+      setBattleLog((prev) => [...prev, `${selectedMonster.monster.name} fainted. You lost the battle!`])
     } else {
-      setBattleLog((prev) => [...prev, `${aiMonster.name} fainted. You won the battle!`])
+      setBattleLog((prev) => [...prev, `${aiMonster.monster.name} fainted. You won the battle!`])
       await handleVictory()
     }
 
@@ -168,7 +182,7 @@ export default function MonsterBattlePage() {
       const newMonster = await generateMonsterNFT()
       const mintedNFT = await mintMonsterNFT(newMonster)
       setMintedMonster(mintedNFT)
-      setMintedImage(newMonster.tokenURI)
+      setMintedImage(newMonster.monster.ipfsHash)
     } catch (error) {
       console.error("Error minting victory NFT:", error)
       toast({ title: "Failed to mint victory NFT", variant: "destructive" })
@@ -177,11 +191,11 @@ export default function MonsterBattlePage() {
     }
   }
 
-  const mintMonsterNFT = async (monster: Monster) => {
+  const mintMonsterNFT = async (monster: MonsterWithMoves) => {
     try {
-      const response = await fetch(monster.tokenURI)
+      const response = await fetch(`https://ipfs.io/ipfs/${monster.monster.ipfsHash}`)
       const blob = await response.blob()
-      const file = new File([blob], `${monster.name}.png`, { type: blob.type })
+      const file = new File([blob], `${monster.monster.name}.png`, { type: blob.type })
       const imgData = new FormData()
       imgData.append("file", file)
 
@@ -196,29 +210,18 @@ export default function MonsterBattlePage() {
 
       const ipfs = await uploadResponse.json()
 
-      let rarityEnum
-      switch (monster.rarity) {
-        case "common":
-          rarityEnum = 0
-          break
-        case "rare":
-          rarityEnum = 1
-          break
-        case "epic":
-          rarityEnum = 2
-          break
-        case "legendary":
-          rarityEnum = 3
-          break
-        default:
-          rarityEnum = 0
-      }
-
       await writeContractAsync({
         address: contractAddress,
         abi: abi,
         functionName: "mintMonster",
-        args: [ipfs, monster.name, monster.attack, monster.defense, monster.hp, rarityEnum],
+        args: [
+          ipfs,
+          monster.monster.name,
+          monster.monster.attack,
+          monster.monster.defense,
+          monster.monster.hp,
+          monster.monster.rarity,
+        ],
       })
 
       return monster
@@ -228,7 +231,7 @@ export default function MonsterBattlePage() {
     }
   }
 
-  const generateMonsterNFT = async (): Promise<Monster> => {
+  const generateMonsterNFT = async (): Promise<MonsterWithMoves> => {
     const rarity = generateRarity()
     const statMultiplier = getRarityMultiplier(rarity)
     const name = monsterNames[Math.floor(Math.random() * monsterNames.length)]
@@ -249,13 +252,18 @@ export default function MonsterBattlePage() {
       const imageUrl = URL.createObjectURL(blob)
 
       return {
-        name,
-        tokenURI: imageUrl,
-        rarity,
-        attack: Math.floor((Math.random() * 50 + 50) * statMultiplier).toString(),
-        defense: Math.floor((Math.random() * 50 + 50) * statMultiplier).toString(),
-        hp: Math.floor((Math.random() * 100 + 100) * statMultiplier).toString(),
-        moveset: generateMoves(),
+        monster: {
+          name,
+          attack: Math.floor((Math.random() * 50 + 50) * statMultiplier).toString(),
+          defense: Math.floor((Math.random() * 50 + 50) * statMultiplier).toString(),
+          hp: Math.floor((Math.random() * 100 + 100) * statMultiplier).toString(),
+          moveCount: "4",
+          rarity,
+          ipfsHash: "", // This should be updated with the actual IPFS hash after uploading
+          isMonster: true,
+          isDeleted: false,
+        },
+        moves: generateMoves(),
       }
     } catch (error) {
       console.error("Error generating monster NFT:", error)
@@ -263,16 +271,16 @@ export default function MonsterBattlePage() {
     }
   }
 
-  const getRarityMultiplier = (rarity: string): number => {
+  const getRarityMultiplier = (rarity: number): number => {
     switch (rarity) {
-      case "common":
-        return 1
-      case "rare":
-        return 1.2
-      case "epic":
-        return 1.5
-      case "legendary":
-        return 2
+      case 0:
+        return 1 // common
+      case 1:
+        return 1.2 // rare
+      case 2:
+        return 1.5 // epic
+      case 3:
+        return 2 // legendary
       default:
         return 1
     }
@@ -301,14 +309,16 @@ export default function MonsterBattlePage() {
             <CardTitle>Your Monster</CardTitle>
           </CardHeader>
           <CardContent>
-            <Select onValueChange={(value) => setSelectedMonster(monsters.find((m) => m.name === value) || null)}>
+            <Select
+              onValueChange={(value) => setSelectedMonster(monsters.find((m) => m.monster.name === value) || null)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choose your monster" />
               </SelectTrigger>
               <SelectContent>
-                {monsters.map((monster) => (
-                  <SelectItem key={monster.name} value={monster.name}>
-                    {monster.name} ({monster.rarity})
+                {monsters.map((monsterWithMoves) => (
+                  <SelectItem key={monsterWithMoves.monster.name} value={monsterWithMoves.monster.name}>
+                    {monsterWithMoves.monster.name} (Rarity: {monsterWithMoves.monster.rarity})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -316,14 +326,14 @@ export default function MonsterBattlePage() {
             {selectedMonster && (
               <div className="mt-4 space-y-2">
                 <img
-                  src={selectedMonster.tokenURI || "/placeholder.svg"}
-                  alt={selectedMonster.name}
+                  src={`https://ipfs.io/ipfs/${selectedMonster.monster.ipfsHash}`}
+                  alt={selectedMonster.monster.name}
                   className="w-full h-48 object-cover rounded-lg"
                 />
-                <p>Attack: {selectedMonster.attack}</p>
-                <p>Defense: {selectedMonster.defense}</p>
-                <p>HP: {selectedMonster.hp}</p>
-                <p>Moves: {selectedMonster.moveset.map((move) => move.attack).join(", ")}</p>
+                <p>Attack: {selectedMonster.monster.attack}</p>
+                <p>Defense: {selectedMonster.monster.defense}</p>
+                <p>HP: {selectedMonster.monster.hp}</p>
+                <p>Moves: {selectedMonster.moves.map((move) => move.moveName).join(", ")}</p>
               </div>
             )}
           </CardContent>
@@ -334,23 +344,22 @@ export default function MonsterBattlePage() {
             <CardTitle>AI Monster</CardTitle>
           </CardHeader>
           <CardContent>
-            {aiMonster ? (
+            {aiMonster && (
               <div className="space-y-2">
                 <img
-                  src={aiMonster.tokenURI || "/placeholder.svg"}
-                  alt={aiMonster.name}
+                  src={`https://ipfs.io/ipfs/${aiMonster.monster.ipfsHash}`}
+                  alt={aiMonster.monster.name}
                   className="w-full h-48 object-cover rounded-lg"
                 />
-                <p>Name: {aiMonster.name}</p>
-                <p>Rarity: {aiMonster.rarity}</p>
-                <p>Attack: {aiMonster.attack}</p>
-                <p>Defense: {aiMonster.defense}</p>
-                <p>HP: {aiMonster.hp}</p>
-                <p>Moves: {aiMonster.moveset.map((move) => move.attack).join(", ")}</p>
+                <p>Name: {aiMonster.monster.name}</p>
+                <p>Rarity: {aiMonster.monster.rarity}</p>
+                <p>Attack: {aiMonster.monster.attack}</p>
+                <p>Defense: {aiMonster.monster.defense}</p>
+                <p>HP: {aiMonster.monster.hp}</p>
+                <p>Moves: {aiMonster.moves.map((move) => move.moveName).join(", ")}</p>
               </div>
-            ) : (
-              <p className="text-center">AI monster will appear here when the battle starts</p>
             )}
+            {!aiMonster && <p className="text-center">AI monster will appear here when the battle starts</p>}
           </CardContent>
         </Card>
       </div>
@@ -394,15 +403,15 @@ export default function MonsterBattlePage() {
           <CardContent>
             <div className="text-center">
               <img
-                src={mintedImage || ""}
-                alt={mintedMonster.name}
+                src={`https://ipfs.io/ipfs/${mintedMonster.monster.ipfsHash}`}
+                alt={mintedMonster.monster.name}
                 className="w-48 h-48 object-cover rounded-lg mx-auto mb-4"
               />
-              <p className="text-xl font-bold">{mintedMonster.name}</p>
-              <p>Rarity: {mintedMonster.rarity}</p>
-              <p>Attack: {mintedMonster.attack}</p>
-              <p>Defense: {mintedMonster.defense}</p>
-              <p>HP: {mintedMonster.hp}</p>
+              <p className="text-xl font-bold">{mintedMonster.monster.name}</p>
+              <p>Rarity: {mintedMonster.monster.rarity}</p>
+              <p>Attack: {mintedMonster.monster.attack}</p>
+              <p>Defense: {mintedMonster.monster.defense}</p>
+              <p>HP: {mintedMonster.monster.hp}</p>
             </div>
           </CardContent>
         </Card>

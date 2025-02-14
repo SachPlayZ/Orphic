@@ -2,11 +2,10 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWriteContract } from "wagmi";
-import abi from "@/abi";
+import { abi, contractAddress } from "@/abi";
 import { Loader2, Sparkles, Zap, Shield, Heart } from "lucide-react";
 import confetti from "canvas-confetti";
-
-const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
+import { getRandomMoves } from "@/functions/moves";
 
 const RARITIES = ["common", "rare", "epic", "legendary"];
 
@@ -22,6 +21,9 @@ const GenerateCreature = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [moveset, setMoveset] = useState<
+    { moveName: string; movePower: bigint }[]
+  >([]);
 
   useEffect(() => {
     const type = searchParams.get("faction");
@@ -35,6 +37,9 @@ const GenerateCreature = () => {
   };
 
   const generateStats = (rarity: string) => {
+    const moves = getRandomMoves();
+    console.log("Moves:\n", moves);
+    setMoveset(moves);
     switch (rarity) {
       case "common":
         return {
@@ -113,13 +118,7 @@ const GenerateCreature = () => {
 
     setIsMinting(true);
 
-    console.log("Minting monster:", {
-      name: monsterName,
-      creatureType,
-      rarity,
-      stats,
-      image,
-    });
+    
 
     try {
       const response = await fetch(image);
@@ -154,20 +153,37 @@ const GenerateCreature = () => {
       } else {
         rarityEnum = 0;
       }
-
-      await writeContractAsync({
-        address: contractAddress,
-        abi: abi,
-        functionName: "mintMonster",
-        args: [
-          ipfs,
-          monsterName,
-          stats.attack,
-          stats.defense,
-          stats.hp,
-          rarityEnum,
-        ],
+      console.log("Minting monster:", {
+        name: monsterName,
+        creatureType,
+        rarityEnum,
+        stats,
+        image,
+        moveset,
       });
+      const tx = await writeContractAsync(
+        {
+          address: contractAddress,
+          abi: abi,
+          functionName: "mintMonster",
+          args: [
+            monsterName,
+            stats.attack,
+            stats.defense,
+            stats.hp,
+            moveset,
+            rarityEnum,
+            ipfs,
+          ],
+        },
+        {
+          onError(error) {
+            console.error("Error minting monster:");
+            console.log(error);
+          },
+        }
+      );
+      console.log("Transaction hash:", tx);
 
       confetti({
         particleCount: 100,

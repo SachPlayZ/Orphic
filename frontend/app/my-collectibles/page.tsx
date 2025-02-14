@@ -6,9 +6,7 @@ import { Loader2, Sparkles } from 'lucide-react';
 import MonsterCard from "./CollectibleCard";
 import MonsterDialog from "./DialogueBox";
 import { Monster } from "./types";
-import abi from "@/abi";
-
-const contractAddress = "0xf5e1F9ded14De19Ae71Bc455E935Eed5A0465463";
+import { abi, contractAddress } from "@/abi";
 
 export default function MonsterCollectiblesPage() {
   const { address } = useAccount();
