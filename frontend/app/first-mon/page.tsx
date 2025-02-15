@@ -118,8 +118,6 @@ const GenerateCreature = () => {
 
     setIsMinting(true);
 
-    
-
     try {
       const response = await fetch(image);
       const blob = await response.blob();
@@ -171,7 +169,20 @@ const GenerateCreature = () => {
             stats.attack,
             stats.defense,
             stats.hp,
-            moveset,
+            [
+              {
+                moveName: "Basic Attack",
+                movePower: stats.attack,
+              },
+              {
+                moveName: "Basic Attack 2",
+                movePower: stats.attack + 10,
+              },
+              {
+                moveName: "Basic Attack 3",
+                movePower: stats.attack + 20,
+              },
+            ],
             rarityEnum,
             ipfs,
           ],
